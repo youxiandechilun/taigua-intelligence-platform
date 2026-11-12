@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>客服工作台登录 - 泰卦智能</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --border:#e4e4e7;--border-strong:#d4d4d8;--text:#18181b;--text-2:#3f3f46;
+  --muted:#71717a;--muted-2:#a1a1aa;--accent:#c0392b;--ok:#16a34a;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.6;background:#fff;color:var(--text);
+}
+.login-wrap{display:flex;min-height:100vh}
+
+/* 品牌区 */
+.brand-side{
+  flex:0 0 52%;background:#141416;color:#fafafa;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;padding:0 6vw;
+}
+.brand-side::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(640px 360px at 30% 40%,rgba(192,57,43,.18),transparent 70%),
+  linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:auto,64px 64px,64px 64px;
+  mask-image:radial-gradient(760px 520px at 30% 45%,#000 30%,transparent 80%);
+  -webkit-mask-image:radial-gradient(760px 520px at 30% 45%,#000 30%,transparent 80%);
+}
+.brand-side .logo-chip{
+  display:inline-flex;align-self:flex-start;background:#fff;border-radius:12px;
+  padding:9px 16px;margin-bottom:26px;box-shadow:0 10px 28px rgba(0,0,0,.45);
+}
+.brand-side .logo-chip img{height:40px;display:block}
+.brand-side .badge{
+  position:relative;display:inline-flex;align-items:center;gap:7px;align-self:flex-start;
+  padding:5px 13px;border:1px solid rgba(255,255,255,.18);border-radius:999px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;color:rgba(255,255,255,.72);margin-bottom:24px;
+}
+.brand-side .badge i{width:6px;height:6px;border-radius:50%;background:#e05a4b;display:block}
+.brand-side h1{font-size:clamp(28px,3vw,44px);font-weight:700;line-height:1.3;position:relative}
+.brand-side h1 .hl{color:#e05a4b}
+.brand-side .sub{margin-top:22px;color:rgba(255,255,255,.6);font-size:14.5px;max-width:430px;line-height:1.9;position:relative}
+.feats{margin-top:32px;display:flex;flex-direction:column;gap:12px;position:relative}
+.feats div{display:flex;align-items:center;gap:11px;font-size:13.5px;color:rgba(255,255,255,.75)}
+.feats i{
+  width:26px;height:26px;flex:0 0 26px;border-radius:8px;display:grid;place-items:center;
+  background:rgba(224,90,75,.16);border:1px solid rgba(224,90,75,.3);color:#e05a4b;font-size:12px;font-style:normal;
+}
+.brand-side .foot{
+  position:absolute;bottom:32px;left:6vw;right:6vw;display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:11.5px;color:rgba(255,255,255,.32);
+}
+@media(max-width:860px){.brand-side{display:none}.login-side{flex:1}}
+
+/* 登录卡 */
+.login-side{flex:1;display:flex;align-items:center;justify-content:center;background:#fff;padding:32px}
+.login-card{width:100%;max-width:372px}
+.login-card .top-logo{display:none;height:38px;margin-bottom:26px}
+@media(max-width:860px){.login-card .top-logo{display:block}}
+.badge-role{
+  display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.1em;color:var(--accent);border:1px solid rgba(192,57,43,.3);
+  background:rgba(192,57,43,.06);border-radius:999px;padding:3px 11px;margin-bottom:14px;
+}
+.login-card h2{font-size:23px;font-weight:700}
+.login-card .desc{color:var(--muted);font-size:13.5px;margin:7px 0 24px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;font-weight:500}
+.field input{
+  width:100%;padding:11px 13px;border:1px solid var(--border-strong);border-radius:10px;
+  font-size:14.5px;background:#fff;color:var(--text);font-family:inherit;transition:border-color .2s;
+}
+.field input:focus{outline:none;border-color:var(--accent)}
+.field .pwd-row{position:relative}
+.field .pwd-row .eye{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;
+  display:grid;place-items:center;background:none;border:none;cursor:pointer;color:var(--muted-2);
+}
+.field .pwd-row .eye:hover{color:var(--text-2)}
+.btn-login{
+  width:100%;padding:13px;border:none;border-radius:11px;background:var(--accent);color:#fff;
+  font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;
+  letter-spacing:.16em;margin-top:6px;
+}
+.btn-login:hover{opacity:.88}
+.btn-login:disabled{opacity:.45;cursor:not-allowed}
+.login-foot{display:flex;justify-content:space-between;margin-top:16px;font-size:12.5px;color:var(--muted)}
+.login-foot a:hover{color:var(--text)}
+.err{display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);color:var(--accent);border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:14px}
+.demo{margin-top:24px;border:1px dashed var(--border-strong);border-radius:12px;padding:11px 14px;font-size:12px;color:var(--muted);line-height:1.9}
+.demo .mono{font-family:var(--mono);color:var(--text-2)}
+#toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);z-index:999;background:#18181b;color:#fff;padding:10px 22px;border-radius:999px;font-size:14px;transition:transform .3s ease}
+#toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="brand-side">
+    <span class="logo-chip"><img src="../assets/logo.jpg" alt="泰卦智能 TAIKUA" /></span>
+    <span class="badge"><i></i>AGENT CONSOLE</span>
+    <h1>客服工作台<br/><span class="hl">第一时间响应每一位商家</span></h1>
+    <p class="sub">接入会话、实时回复、AI 知识库辅助应答，所有咨询在一个工作台里闭环。</p>
+    <div class="feats">
+      <div><i>1</i>实时排队提醒，新会话声音通知</div>
+      <div><i>2</i>AI 客服自动应答，人工无缝接管</div>
+      <div><i>3</i>常用话术一键发送，回复不重复敲字</div>
+    </div>
+    <div class="foot"><span>taikua.cn</span><span>SERVICE TEAM</span></div>
+  </div>
+
+  <div class="login-side">
+    <form class="login-card" id="form" autocomplete="off">
+      <img class="top-logo" src="../assets/logo.jpg" alt="泰卦智能" />
+      <span class="badge-role">AGENT</span>
+      <h2>客服登录</h2>
+      <p class="desc">使用客服工号与密码登录工作台</p>
+
+      <div class="err" id="err"></div>
+
+      <div class="field">
+        <label>客服工号</label>
+        <input id="no" type="text" placeholder="如 CS001" autocomplete="username" required />
+      </div>
+
+      <div class="field">
+        <label>密码</label>
+        <div class="pwd-row">
+          <input id="password" type="password" placeholder="登录密码" autocomplete="current-password" required />
+          <button type="button" class="eye" id="eye" title="显示密码">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-login" type="submit" id="btn">登 录</button>
+
+      <div class="login-foot">
+        <a href="javascript:;" id="forgot">忘记密码？</a>
+        <a href="login.html">商家登录入口 →</a>
+      </div>
+
+      <div class="demo">
+        演示工号：<span class="mono">CS001 / CS002</span>　密码：<span class="mono">cs123456</span><br/>
+        客服账号由管理员在「管理后台 → 客服团队」中开通。
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+const $ = id => document.getElementById(id);
+const CS_TOKEN_KEY = 'tk_cs_token';
+document.documentElement.setAttribute('data-theme', localStorage.getItem('tk-theme') || 'light');
+
+let timer;
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(timer); timer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+$('eye').onclick = () => {
+  const p = $('password');
+  const on = p.type === 'password';
+  p.type = on ? 'text' : 'password';
+  $('eye').style.color = on ? 'var(--accent)' : '';
+  $('eye').title = on ? '隐藏密码' : '显示密码';
+};
+
+$('forgot').onclick = () => toast('请联系客服主管重置密码（管理后台 → 客服团队）');
+
+$('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const no = $('no').value.trim();
+  const pwd = $('password').value.trim();
+  const err = $('err');
+  err.style.display = 'none';
+  if (!no || !pwd) { err.textContent = '请填写工号与密码'; err.style.display = 'block'; return; }
+
+  $('btn').disabled = true; $('btn').textContent = '登录中…';
+  try {
+    const res = await fetch('/api/cs/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ no, password: pwd }),
+    });
+    const j = await res.json();
+    if (j.code === 0) {
+      localStorage.setItem(CS_TOKEN_KEY, j.data.token);
+      localStorage.setItem('tk_cs_agent', JSON.stringify(j.data.agent));
+      toast('登录成功，正在进入工作台…');
+      setTimeout(() => location.href = 'agent-console.html', 500);
+    } else {
+      err.textContent = j.msg || '登录失败';
+      err.style.display = 'block';
+      $('btn').disabled = false; $('btn').textContent = '登 录';
+    }
+  } catch (e2) {
+    err.textContent = '网络异常，请确认后端服务已启动';
+    err.style.display = 'block';
+    $('btn').disabled = false; $('btn').textContent = '登 录';
+  }
+});
+
+/* 已登录直接进工作台 */
+(async () => {
+  const t = localStorage.getItem(CS_TOKEN_KEY);
+  if (!t) return;
+  try {
+    const r = await fetch('/api/cs/agent/me', { headers: { 'X-CS-Token': t } });
+    const j = await r.json();
+    if (j.code === 0) location.href = 'agent-console.html';
+  } catch (e) { }
+})();
+</script>
+</body>
+</html>

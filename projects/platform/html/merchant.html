@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>商家信息 - 泰卦智能 商家服务平台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="common.css" />
+<style>
+/* ---------- 顶部资料卡 ---------- */
+.hero{
+  border:1px solid var(--border);border-radius:18px;background:var(--bg-soft);
+  padding:28px;margin-bottom:20px;
+}
+.hero-top{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.hero-avatar{
+  width:72px;height:72px;border-radius:18px;overflow:hidden;flex:0 0 72px;
+  background:var(--text);display:grid;place-items:center;
+}
+.hero-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-name{font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hero-sub{color:var(--muted);font-size:13.5px;margin-top:2px}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px;padding-top:20px;border-top:1px solid var(--border)}
+@media(max-width:640px){.hero-stats{grid-template-columns:1fr}}
+.hero-stats .lbl{font-size:12.5px;color:var(--muted)}
+.hero-stats .val{font-size:19px;font-weight:700;font-family:var(--mono);margin-top:3px}
+
+/* ---------- 分区卡 ---------- */
+.sec-card{border:1px solid var(--border);border-radius:18px;background:var(--bg-soft);padding:26px;margin-bottom:20px}
+.sec-card>h2{font-size:17px;font-weight:700}
+.sec-card>.desc{font-size:13px;color:var(--muted);margin:5px 0 20px}
+.panel{border:1px solid var(--border);border-radius:14px;background:var(--bg);padding:20px}
+.profile-grid{display:grid;grid-template-columns:1fr 1.3fr;gap:18px;align-items:start}
+@media(max-width:900px){.profile-grid{grid-template-columns:1fr}}
+.avatar-box{text-align:center}
+.avatar-box .big{width:84px;height:84px;border-radius:18px;overflow:hidden;background:var(--text);display:grid;place-items:center;margin:0 auto 14px}
+.avatar-box .big img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar-box .t{font-weight:600;font-size:14px}
+.avatar-box .hint2{font-size:12px;color:var(--muted-2);margin:6px 0 14px;line-height:1.7}
+.btn-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.bind-item{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid var(--border);border-radius:14px;background:var(--bg);margin-bottom:12px}
+.bind-item:last-child{margin-bottom:0}
+.bind-ico{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:15px;flex:0 0 40px}
+.bind-ico.mail{background:var(--panel);color:var(--text-2)}
+.bind-ico.phone{background:rgba(22,163,74,.12);color:#16a34a}
+.bind-ico.wx{background:rgba(22,163,74,.14);color:#16a34a}
+.bind-ico.dx{background:rgba(59,130,246,.14);color:#3b82f6}
+.bind-info{flex:1;min-width:0}
+.bind-info b{font-size:14px;display:flex;align-items:center;gap:8px}
+.bind-info .val{font-size:13px;color:var(--muted);margin-top:2px;word-break:break-all}
+.pwd-wrap{max-width:560px}
+.alert-toggle{display:flex;align-items:center;justify-content:space-between;padding:6px 0 14px}
+.alert-toggle .t{font-weight:600;font-size:14px}
+.mail-line{display:flex;gap:10px;margin-top:8px}
+.mail-line input{flex:1}
+.warn{color:#d97706;font-size:12.5px;margin-top:10px}
+.grid-form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.grid-form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="console">
+  <div id="sidebar-root"></div>
+  <main class="main">
+    <div class="main-inner">
+
+      <!-- 顶部资料卡（只读展示） -->
+      <div class="hero" style="margin-top:6px">
+        <div class="hero-top">
+          <div class="hero-avatar"><img id="hero-logo" src="../assets/logo.jpg" alt="logo" /></div>
+          <div>
+            <div class="hero-name"><span id="hero-company">—</span> <span id="hero-status" class="badge green">—</span></div>
+            <div class="hero-sub" id="hero-phone">—</div>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div><div class="lbl">账户余额</div><div class="val" id="hero-balance">—</div></div>
+          <div><div class="lbl">智能体数量</div><div class="val" id="hero-agents">—</div></div>
+          <div><div class="lbl">注册时间</div><div class="val" id="hero-created">—</div></div>
+        </div>
+      </div>
+
+      <!-- 资料与头像 -->
+      <div class="sec-card">
+        <h2>资料与头像</h2>
+        <p class="desc">维护公开展示信息，企业资料变更后将同步到控制台各处。</p>
+        <div class="profile-grid">
+          <div class="panel avatar-box">
+            <div class="big"><img id="logo-preview" src="../assets/logo.jpg" alt="logo" /></div>
+            <div class="t">企业 Logo</div>
+            <div class="hint2">上传后自动压缩适配，建议 256×256 以上<br/>JPG / PNG 格式</div>
+            <input type="file" id="logo-file" accept="image/*" style="display:none" />
+            <div class="btn-row">
+              <button class="btn btn-sm" type="button" id="logo-pick">上传图片</button>
+              <button class="btn btn-sm" type="button" id="logo-save">保存</button>
+              <button class="btn btn-sm" type="button" id="logo-del">删除</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div style="font-weight:600;font-size:14px;margin-bottom:14px">编辑企业资料</div>
+            <div class="grid-form">
+              <div class="field" style="margin-bottom:12px"><label>企业名称<em>*</em></label><input id="company" /></div>
+              <div class="field" style="margin-bottom:12px"><label>主联系人<em>*</em></label><input id="contact" /></div>
+            </div>
+            <div class="grid-form">
+              <div class="field" style="margin-bottom:12px"><label>邮箱</label><input id="email" type="email" placeholder="用于接收余额提醒与通知" /></div>
+              <div class="field" style="margin-bottom:12px"><label>行业</label>
+                <select id="industry">
+                  <option value="">请选择行业</option>
+                  <option>智能科技</option><option>电子商务</option><option>教育培训</option>
+                  <option>房产家居</option><option>金融保险</option><option>企业服务</option>
+                  <option>医疗健康</option><option>其他</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid-form">
+              <div class="field" style="margin-bottom:12px"><label>规模</label>
+                <select id="scale"><option value="">请选择规模</option><option>1-49</option><option>50-199</option><option>200+</option></select>
+              </div>
+              <div class="field" style="margin-bottom:12px"><label>所在地（省 / 市）</label>
+                <div style="display:flex;gap:8px"><input id="province" placeholder="省" /><input id="city" placeholder="市" /></div>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:12px"><label>官网</label><input id="website" placeholder="https://" /></div>
+            <div class="field" style="margin-bottom:14px"><label>企业简介</label><textarea id="intro" style="min-height:72px"></textarea></div>
+            <div style="display:flex;justify-content:flex-end"><button class="btn btn-primary" id="btn-save-profile">更新资料</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 登录方式绑定 -->
+      <div class="sec-card">
+        <h2>登录方式绑定</h2>
+        <p class="desc">查看当前绑定状态，可通过签约手机号或邮箱登录商家控制台。</p>
+        <div class="bind-item">
+          <div class="bind-ico phone">📱</div>
+          <div class="bind-info">
+            <b>手机 <span class="badge green">已绑定</span></b>
+            <div class="val" id="bind-phone">—</div>
+            <div class="val">签约手机号，支持验证码登录</div>
+          </div>
+        </div>
+        <div class="bind-item">
+          <div class="bind-ico mail">✉️</div>
+          <div class="bind-info">
+            <b>邮箱 <span class="badge" id="bind-email-badge">未绑定</span></b>
+            <div class="val" id="bind-email">—</div>
+            <div class="val">主邮箱在右侧「编辑企业资料」中管理</div>
+          </div>
+          <button class="btn btn-sm" id="btn-edit-email">管理邮箱</button>
+        </div>
+        <div class="bind-item">
+          <div class="bind-ico wx">微</div>
+          <div class="bind-info"><b>微信 <span class="badge">未绑定</span></b><div class="val">绑定后可扫码快捷登录</div></div>
+          <button class="btn btn-sm" onclick="toast('微信绑定通道建设中')">绑定</button>
+        </div>
+        <div class="bind-item">
+          <div class="bind-ico dx">钉</div>
+          <div class="bind-info"><b>钉钉 <span class="badge">未绑定</span></b><div class="val">绑定后可扫码快捷登录</div></div>
+          <button class="btn btn-sm" onclick="toast('钉钉绑定通道建设中')">绑定</button>
+        </div>
+      </div>
+
+      <!-- 修改密码 -->
+      <div class="sec-card">
+        <h2>修改密码</h2>
+        <p class="desc">建议定期更换密码，保障账号安全。</p>
+        <div class="pwd-wrap">
+          <div class="field"><label>当前密码</label><input id="pwd-old" type="password" /></div>
+          <div class="field">
+            <label>新密码</label><input id="pwd-new" type="password" />
+            <div class="hint">密码至少需要 6 个字符</div>
+          </div>
+          <div class="field"><label>确认新密码</label><input id="pwd-new2" type="password" /></div>
+          <div style="display:flex;justify-content:flex-end"><button class="btn btn-primary" id="btn-pwd">修改密码</button></div>
+        </div>
+      </div>
+
+      <!-- 余额不足提醒 -->
+      <div class="sec-card">
+        <h2>余额不足提醒</h2>
+        <p class="desc">当账户点数余额低于阈值时发送邮件提醒</p>
+        <div class="alert-toggle">
+          <span class="t">启用余额不足提醒</span>
+          <label class="switch"><input type="checkbox" id="alert-on" checked /><i></i></label>
+        </div>
+        <div class="pwd-wrap">
+          <div class="field">
+            <label>自定义提醒阈值 <span class="muted small">留空使用系统默认值</span></label>
+            <div style="display:flex;gap:10px;align-items:center">
+              <input id="alert-threshold" type="number" placeholder="如 500" style="flex:1" />
+              <button class="btn" id="btn-alert-save" style="flex:0 0 auto">保存</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>通知邮箱</label>
+            <div class="warn">⚠️ 必须先在上方资料中添加并保存邮箱，余额不足时才能收到提醒邮件</div>
+            <div class="mail-line">
+              <input id="alert-mail" placeholder="通知邮箱" disabled />
+              <button class="btn" id="btn-alert-add" style="flex:0 0 auto">添加</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 联系客服 -->
+      <div class="sec-card" style="display:flex;align-items:center;gap:14px">
+        <div class="bind-ico mail">💬</div>
+        <div>
+          <b style="font-size:14px">联系客服</b>
+          <div class="small muted">客服电话：<b class="mono">18925568615</b> · 工作日 09:00–18:30 · 智能客服 7×24</div>
+        </div>
+        <a class="btn btn-sm" href="/zt/support" style="margin-left:auto">去客服中心</a>
+      </div>
+
+    </div>
+  </main>
+</div>
+<script src="common.js"></script>
+<script>
+const f = id => document.getElementById(id);
+let ME = null;
+
+function fmtRegisterDate(s) {
+  if (!s) return '—';
+  const [d] = s.split(' ');
+  const [y, m] = d.split('-');
+  return y + ' 年 ' + parseInt(m) + ' 月';
+}
+function renderInfo() {
+  f('hero-company').textContent = ME.company || '未命名企业';
+  const smap = { '已认证': 'badge green', '待审核': 'badge warn', '已驳回': 'badge red', '已过期': 'badge' };
+  f('hero-status').className = smap[ME.status] || 'badge';
+  f('hero-status').textContent = ME.status || '—';
+  f('hero-phone').textContent = ME.phone;
+  f('hero-created').textContent = fmtRegisterDate(ME.created_at);
+
+  f('company').value = ME.company || '';
+  f('contact').value = ME.contact || '';
+  f('email').value = ME.email || '';
+  f('industry').value = ME.industry || '';
+  f('scale').value = ME.scale || '';
+  f('province').value = ME.province || '';
+  f('city').value = ME.city || '';
+  f('website').value = ME.website || '';
+  f('intro').value = ME.intro || '';
+
+  // 绑定区
+  f('bind-phone').textContent = ME.phone;
+  const hasMail = !!(ME.email && ME.email.trim());
+  f('bind-email-badge').className = hasMail ? 'badge green' : 'badge';
+  f('bind-email-badge').textContent = hasMail ? '已绑定' : '未绑定';
+  f('bind-email').textContent = hasMail ? ME.email : '尚未绑定邮箱';
+  f('alert-mail').value = hasMail ? ME.email : '';
+}
+
+(async () => {
+  ME = await initConsole('merchant.html');
+  if (!ME) return;
+  renderInfo();
+
+  const bal = await api('/api/token/balance');
+  if (bal.code === 0) f('hero-balance').textContent = bal.data.balance + ' 点';
+  const ag = await api('/api/agents');
+  if (ag.code === 0) f('hero-agents').textContent = ag.data.length;
+
+  // 提醒设置（本地演示存储）
+  f('alert-on').checked = localStorage.getItem('tk_alert_on') !== '0';
+  f('alert-threshold').value = localStorage.getItem('tk_alert_threshold') || '';
+  f('alert-on').onchange = e => {
+    localStorage.setItem('tk_alert_on', e.target.checked ? '1' : '0');
+    toast(e.target.checked ? '已启用余额不足提醒' : '已关闭余额不足提醒');
+  };
+
+  /* Logo 本地预览 */
+  f('logo-pick').onclick = () => f('logo-file').click();
+  f('logo-file').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = ev => { f('logo-preview').src = ev.target.result; f('hero-logo').src = ev.target.result; };
+    r.readAsDataURL(file);
+  };
+  f('logo-save').onclick = () => toast('演示环境：Logo 仅本地预览，正式版接入文件存储后保存');
+  f('logo-del').onclick = () => {
+    f('logo-preview').src = '../assets/logo.jpg';
+    f('hero-logo').src = '../assets/logo.jpg';
+    f('logo-file').value = '';
+    toast('已恢复默认 Logo');
+  };
+
+  /* 更新资料 */
+  f('btn-save-profile').onclick = async () => {
+    if (!f('company').value.trim()) return toast('企业名称不能为空');
+    if (!f('contact').value.trim()) return toast('主联系人不能为空');
+    const j = await api('/api/merchant/me', 'PUT', {
+      company: f('company').value.trim(),
+      contact: f('contact').value.trim(),
+      email: f('email').value.trim(),
+      industry: f('industry').value,
+      scale: f('scale').value,
+      province: f('province').value.trim(),
+      city: f('city').value.trim(),
+      website: f('website').value.trim(),
+      intro: f('intro').value.trim(),
+    });
+    if (j.code === 0) { ME = j.data; window.ME = j.data; renderInfo(); toast('资料已更新'); }
+    else toast(j.msg || '保存失败');
+  };
+
+  f('btn-edit-email').onclick = () => {
+    f('email').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    f('email').focus();
+    toast('请在「编辑企业资料」中修改邮箱后点「更新资料」');
+  };
+
+  /* 修改密码 */
+  f('btn-pwd').onclick = async () => {
+    const old = f('pwd-old').value, nw = f('pwd-new').value, nw2 = f('pwd-new2').value;
+    if (!old) return toast('请输入当前密码');
+    if (nw.length < 6) return toast('新密码至少 6 位');
+    if (nw !== nw2) return toast('两次输入的新密码不一致');
+    const j = await api('/api/auth/password', 'POST', { old_password: old, new_password: nw });
+    if (j.code === 0) { toast(j.msg); f('pwd-old').value = f('pwd-new').value = f('pwd-new2').value = ''; }
+    else toast(j.msg || '修改失败');
+  };
+
+  /* 余额提醒保存/添加 */
+  f('btn-alert-save').onclick = () => {
+    localStorage.setItem('tk_alert_threshold', f('alert-threshold').value.trim());
+    toast('提醒阈值已保存（' + (f('alert-threshold').value.trim() || '系统默认') + '）');
+  };
+  f('btn-alert-add').onclick = () => {
+    const mail = f('email').value.trim();
+    if (!mail) return toast('请先在「编辑企业资料」中填写邮箱并保存');
+    f('alert-mail').value = mail;
+    toast('通知邮箱已关联：' + mail);
+  };
+})();
+</script>
+</body>
+</html>

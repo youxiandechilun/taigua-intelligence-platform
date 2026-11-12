@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>工单管理 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>工单管理</h1>
+          <p>集中处理商家提交的问题工单，回复后自动同步到商家端客服中心</p>
+        </div>
+        <div class="right">
+          <button class="btn btn-sm" onclick="download('tickets')">导出工单</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs"></div>
+
+      <div class="toolbar">
+        <div class="grow">
+          <input class="inp" id="kw" placeholder="搜索工单标题 / 内容 / 商家名称，回车查询" />
+        </div>
+        <button class="btn" onclick="setPage(1)">查询</button>
+        <button class="btn" onclick="resetFilter()">重置</button>
+      </div>
+
+      <div class="adm-table">
+        <table>
+          <thead><tr>
+            <th style="width:66px">工单号</th><th>商家</th><th>标题</th><th>分类</th>
+            <th>优先级</th><th>状态</th><th>处理人</th><th>提交时间</th><th style="width:110px">操作</th>
+          </tr></thead>
+          <tbody id="rows"><tr><td colspan="8" class="empty">加载中…</td></tr></tbody>
+        </table>
+      </div>
+      <div id="pager"></div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+const S = { page: 1, pageSize: 15, status: '', keyword: '', total: 0, list: [], counts: { all: 0, open: 0, closed: 0 } };
+let CUR = null;
+const $ = id => document.getElementById(id);
+
+(async () => {
+  const me = await admInit('admin-tickets.html');
+  if (!me) return;
+  $('kw').addEventListener('keydown', e => { if (e.key === 'Enter') setPage(1); });
+  renderTabs(); load();
+})();
+
+function renderTabs() {
+  const tabs = [
+    ['', `全部 (${S.counts.all})`],
+    ['处理中', `待处理 (${S.counts.open})`],
+    ['已关闭', `已关闭 (${S.counts.closed})`],
+  ];
+  $('tabs').innerHTML = tabs.map(([v, l]) =>
+    `<a class="${S.status === v ? 'on' : ''}" onclick="tabTo('${v}')">${l}</a>`).join('');
+}
+function tabTo(v) { S.status = v; setPage(1); }
+function resetFilter() { S.status = ''; S.keyword = ''; $('kw').value = ''; setPage(1); }
+function setPage(p) {
+  S.page = p; S.keyword = $('kw').value.trim();
+  renderTabs(); load();
+}
+
+async function load() {
+  const qs = new URLSearchParams({ page: S.page, pageSize: S.pageSize });
+  if (S.status) qs.set('status', S.status);
+  if (S.keyword) qs.set('keyword', S.keyword);
+  const j = await api('/api/admin/tickets?' + qs.toString());
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  const d = j.data;
+  S.total = d.total; S.counts = d.counts; S.list = d.list || [];
+  renderTabs();
+
+  const body = $('rows');
+  if (!d.list.length) body.innerHTML = '<tr><td colspan="9" class="empty">暂无工单</td></tr>';
+  else body.innerHTML = d.list.map(t => `
+    <tr>
+      <td class="mono small">#${t.id}</td>
+      <td><b>${esc(t.company || '—')}</b><div class="small muted mono">${esc(t.phone || '')}</div></td>
+      <td>${esc(t.title)}</td>
+      <td class="small">${esc(t.category)}</td>
+      <td>${t.priority === '高' ? '<span class="badge red">高</span>' : '<span class="badge">普通</span>'}</td>
+      <td>${statusBadge(t.status)}</td>
+      <td class="small">${t.handler ? esc(t.handler) : '<span class="muted">未接手</span>'}</td>
+      <td class="mono small">${fmtTime(t.created_at)}</td>
+      <td><button class="btn ${t.status === '已关闭' ? '' : 'btn-primary'}" onclick="openTicket(${t.id})">${t.status === '已关闭' ? '查看' : '处理'}</button></td>
+    </tr>`).join('');
+  renderPager($('pager'), S.total, S.page, S.pageSize, setPage);
+  loadBadges();
+}
+
+async function openTicket(id) {
+  CUR = (S.list || []).find(x => x.id === id);
+  if (!CUR) return toast('工单不存在，请刷新后重试');
+  const t = CUR;
+  openDrawer('工单 #' + t.id + ' · ' + t.title, `
+    <div class="dl" style="margin-bottom:14px">
+      <dt>商家</dt><dd><b>${esc(t.company || '—')}</b> <span class="mono small muted">${esc(t.phone || '')}</span></dd>
+      <dt>分类</dt><dd>${esc(t.category)}</dd>
+      <dt>优先级</dt><dd>${t.priority === '高' ? '<span class="badge red">高</span>' : '<span class="badge">普通</span>'}</dd>
+      <dt>状态</dt><dd>${statusBadge(t.status)}</dd>
+      <dt>处理人</dt><dd>${t.handler ? esc(t.handler) + '（客服工作台接手）' : '未接手'}</dd>
+      <dt>提交时间</dt><dd>${fmtTime(t.created_at)}</dd>
+      ${t.replied_at ? `<dt>回复时间</dt><dd>${fmtTime(t.replied_at)} · ${esc(t.replied_by || '')}</dd>` : ''}
+    </div>
+    <div class="small" style="font-weight:600;margin-bottom:6px">问题描述</div>
+    <div style="background:var(--bg-soft);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13.5px;white-space:pre-wrap;margin-bottom:16px">${esc(t.content)}</div>
+    ${t.reply ? `<div class="small" style="font-weight:600;margin-bottom:6px">已回复</div>
+      <div style="background:var(--accent-soft);border:1px solid rgba(192,57,43,.25);border-radius:10px;padding:12px 14px;font-size:13.5px;white-space:pre-wrap;margin-bottom:16px">${esc(t.reply)}</div>` : ''}
+    <div class="field"><label>回复内容 <em>*</em></label>
+      <textarea id="tk-reply" placeholder="填写给商家的回复，提交后商家可在客服中心看到">${esc(t.reply || '')}</textarea></div>
+    <div class="field"><label>处理结果</label>
+      <select id="tk-status">
+        <option value="处理中" ${t.status === '处理中' ? 'selected' : ''}>继续跟进（处理中）</option>
+        <option value="已关闭" ${t.status === '已关闭' ? 'selected' : ''}>回复并关闭工单</option>
+      </select></div>
+    <div class="field"><label>优先级</label>
+      <select id="tk-priority" onchange="setPriority()">
+        <option value="普通" ${t.priority !== '高' ? 'selected' : ''}>普通</option>
+        <option value="高" ${t.priority === '高' ? 'selected' : ''}>高</option>
+      </select></div>
+  `, `<button class="btn" onclick="closeDrawer()">关闭</button>
+      <button class="btn btn-primary" onclick="submitReply()">提交回复</button>`);
+}
+
+async function setPriority() {
+  await api('/api/admin/tickets/' + CUR.id, 'PUT', { priority: $('tk-priority').value });
+  toast('优先级已更新'); load();
+}
+
+async function submitReply() {
+  const reply = $('tk-reply').value.trim();
+  if (!reply) return toast('回复内容不能为空');
+  const j = await api(`/api/admin/tickets/${CUR.id}/reply`, 'POST',
+    { reply, status: $('tk-status').value });
+  if (j.code === 0) { toast('回复已提交'); closeDrawer(); load(); }
+  else toast(j.msg || '提交失败');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>申请开通账号 - 泰卦智能 商家服务平台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --border:#e4e4e7;--border-strong:#d4d4d8;--text:#18181b;--text-2:#3f3f46;
+  --muted:#71717a;--muted-2:#a1a1aa;--accent:#c0392b;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.6;background:#fafafa;color:var(--text);
+}
+.wrap{display:flex;min-height:100vh}
+.brand{
+  flex:0 0 42%;background:#141416;color:#fafafa;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;padding:0 6vw;
+}
+.brand::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(560px 320px at 30% 45%,rgba(192,57,43,.16),transparent 70%),
+  linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:auto,64px 64px,64px 64px;
+  mask-image:radial-gradient(720px 500px at 30% 45%,#000 30%,transparent 80%);
+  -webkit-mask-image:radial-gradient(720px 500px at 30% 45%,#000 30%,transparent 80%);
+}
+.brand img{height:48px;margin-bottom:30px}
+.brand h1{font-size:clamp(26px,2.8vw,40px);font-weight:700;line-height:1.3;position:relative}
+.brand p{margin-top:20px;color:rgba(255,255,255,.6);font-size:14.5px;max-width:400px;position:relative}
+.brand .steps{margin-top:34px;position:relative;display:flex;flex-direction:column;gap:14px}
+.brand .step{display:flex;gap:12px;font-size:13.5px;color:rgba(255,255,255,.72)}
+.brand .step b{flex:0 0 22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;font-size:11px;font-family:var(--mono);color:#e05a4b}
+@media(max-width:900px){.brand{display:none}}
+.side{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px}
+.card{width:100%;max-width:440px;background:#fff;border:1px solid var(--border);border-radius:18px;padding:32px;box-shadow:0 12px 30px rgba(24,24,27,.06)}
+.card h2{font-size:22px;font-weight:700}
+.card .desc{color:var(--muted);font-size:13.5px;margin:8px 0 22px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;font-weight:500}
+.field label em{color:var(--accent);font-style:normal;margin-left:2px}
+.field input,.field textarea{
+  width:100%;padding:11px 13px;border:1px solid var(--border-strong);border-radius:10px;
+  font-size:14px;font-family:inherit;background:#fff;color:var(--text);transition:border-color .2s;
+}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
+.field textarea{min-height:76px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.row{grid-template-columns:1fr}}
+.btn{
+  width:100%;padding:13px;border:none;border-radius:11px;background:var(--accent);color:#fff;
+  font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;letter-spacing:.1em;margin-top:6px;
+}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.err{display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);color:var(--accent);border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:14px}
+.foot{margin-top:18px;font-size:13px;color:var(--muted);text-align:center}
+.foot a{color:var(--accent)}
+.hint{font-size:12px;color:var(--muted-2);margin-top:5px}
+.success{display:none;text-align:center;padding:10px 0}
+.success .ok{width:54px;height:54px;border-radius:50%;background:rgba(22,163,74,.12);color:#16a34a;display:grid;place-items:center;margin:0 auto 16px;font-size:26px}
+#toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);z-index:999;background:#18181b;color:#fff;padding:10px 22px;border-radius:999px;font-size:14px;transition:transform .3s ease}
+#toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <img src="../assets/logo.jpg" alt="泰卦智能 TAIKUA" />
+    <h1>申请开通<br/>泰卦智能商家账号</h1>
+    <p>提交资料后由客户经理审核，审核通过即可使用验证码或密码登录商家控制台。</p>
+    <div class="steps">
+      <div class="step"><b>1</b><span>填写企业与联系人信息</span></div>
+      <div class="step"><b>2</b><span>客户经理 1 个工作日内联系确认</span></div>
+      <div class="step"><b>3</b><span>开通成功，登录控制台配置智能体</span></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <div id="form-area">
+        <h2>申请开通账号</h2>
+        <p class="desc">已有账号？<a href="/qt" style="color:var(--accent)">直接登录</a></p>
+        <div class="err" id="err"></div>
+        <div class="field"><label>企业名称<em>*</em></label><input id="company" placeholder="如：东莞市恒顺智能科技" /></div>
+        <div class="row">
+          <div class="field"><label>主联系人<em>*</em></label><input id="contact" placeholder="姓名" /></div>
+          <div class="field"><label>手机号<em>*</em></label><input id="phone" maxlength="11" placeholder="11 位手机号" /></div>
+        </div>
+        <div class="field">
+          <label>设置登录密码<em>*</em></label>
+          <input id="password" type="password" placeholder="至少 6 位" />
+          <div class="hint">开通后可用「手机号 + 密码」或「手机号 + 验证码」登录</div>
+        </div>
+        <div class="field"><label>邀请码（选填）</label><input id="invite" placeholder="若无邀请码可留空" /></div>
+        <div class="field"><label>需求说明（选填）</label><textarea id="remark" placeholder="想使用的智能体 / 日均外呼量等"></textarea></div>
+        <button class="btn" id="btn-submit">提交申请</button>
+        <div class="foot">客服电话 <b class="mono" style="font-family:ui-monospace,monospace">18925568615</b></div>
+      </div>
+
+      <div class="success" id="success-area">
+        <div class="ok">✓</div>
+        <h2 style="margin-bottom:8px">申请已提交</h2>
+        <p class="desc" id="success-msg">资料已提交，客户经理会尽快与您联系。</p>
+        <div style="background:#fafafa;border:1px solid var(--border);border-radius:12px;padding:14px;text-align:left;font-size:13px;margin-bottom:16px">
+          <div>登录手机号：<b class="mono" id="r-phone"></b></div>
+          <div style="margin-top:6px">当前状态：<span style="color:#d97706">待审核</span></div>
+        </div>
+        <button class="btn" style="background:#18181b" onclick="location.href='/qt'">去登录</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const f = id => document.getElementById(id);
+
+function err(msg) { const e = f('err'); e.textContent = msg; e.style.display = 'block'; }
+
+f('btn-submit').onclick = async () => {
+  const company = f('company').value.trim();
+  const contact = f('contact').value.trim();
+  const phone = f('phone').value.trim();
+  const password = f('password').value;
+  f('err').style.display = 'none';
+  if (!company) return err('请填写企业名称');
+  if (!contact) return err('请填写主联系人');
+  if (!/^1\d{10}$/.test(phone)) return err('请输入正确的 11 位手机号');
+  if (password.length < 6) return err('密码至少 6 位');
+
+  const btn = f('btn-submit');
+  btn.disabled = true; btn.textContent = '提交中…';
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        company, contact, phone, password,
+        invite_code: f('invite').value.trim(),
+        remark: f('remark').value.trim(),
+      }),
+    });
+    const j = await res.json();
+    if (j.code === 0) {
+      // 申请成功后不自动登录，引导回到登录页
+      localStorage.removeItem('tk_token');
+      f('form-area').style.display = 'none';
+      f('success-area').style.display = 'block';
+      f('r-phone').textContent = phone;
+      f('success-msg').textContent = '资料已提交，当前为「待审核」状态，客户经理会尽快与您联系。';
+    } else {
+      err(j.msg || '提交失败，请稍后重试');
+    }
+  } catch (e) {
+    err('网络异常，请确认后端服务已启动');
+  }
+  btn.disabled = false; btn.textContent = '提交申请';
+};
+</script>
+</body>
+</html>

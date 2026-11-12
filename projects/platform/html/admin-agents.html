@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>智能体管理 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+<style>
+.agent-layout{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start}
+@media(max-width:980px){.agent-layout{grid-template-columns:1fr}}
+.tag-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;font-size:13.5px;cursor:pointer;transition:all .18s;border:1px solid transparent}
+.tag-item:hover{background:var(--bg-soft)}
+.tag-item.on{background:var(--accent-soft);border-color:rgba(192,57,43,.28);font-weight:600;color:var(--accent)}
+.tag-item .c{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted-2)}
+.tag-item .acts{display:none;gap:2px}
+.tag-item:hover .acts{display:flex}
+.tag-item .acts span{font-size:11px;padding:1px 5px;border-radius:5px;border:1px solid var(--border);color:var(--muted);background:var(--bg)}
+.tag-item .acts span:hover{color:var(--text);border-color:var(--border-strong)}
+</style>
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>智能体管理</h1>
+          <p>维护一级分类与智能体；商家端按分类折叠展示，二级智能体带跳转按钮</p>
+        </div>
+        <div class="right">
+          <button class="btn btn-sm" onclick="openOrders()">购买记录</button>
+          <button class="btn btn-sm" onclick="openGrant()">手动开通</button>
+          <button class="btn btn-sm" onclick="openTag()">＋ 新建分类</button>
+          <button class="btn btn-primary btn-sm" onclick="openAgent()">＋ 新建智能体</button>
+        </div>
+      </div>
+
+      <div class="agent-layout">
+        <div class="panel">
+          <div class="panel-h"><b>分类</b><span class="sub" id="tag-count"></span></div>
+          <div id="tag-list"></div>
+        </div>
+
+        <div>
+          <div class="toolbar">
+            <div class="grow">
+              <input class="inp" id="kw" placeholder="搜索智能体名称 / 描述，回车查询" />
+            </div>
+            <select class="sel" id="tag-sel"><option value="">全部分类</option></select>
+            <select class="sel" id="st-sel">
+              <option value="">全部状态</option><option value="running">运行中</option><option value="stopped">已停用</option>
+            </select>
+            <button class="btn" onclick="renderAgents()">查询</button>
+          </div>
+
+          <div class="adm-table">
+            <table>
+              <thead><tr>
+                <th>智能体</th><th>分类</th><th>区域</th><th>价格 / 有效期</th><th>状态</th><th>创建时间</th><th style="width:250px">操作</th>
+              </tr></thead>
+              <tbody id="rows"><tr><td colspan="7" class="empty">加载中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+let TAGS = [], AGENTS = [], TAG_FILTER = '';
+const $ = id => document.getElementById(id);
+
+(async () => {
+  const me = await admInit('admin-agents.html');
+  if (!me) return;
+  $('kw').addEventListener('keydown', e => { if (e.key === 'Enter') renderAgents(); });
+  await loadAll();
+})();
+
+async function loadAll() {
+  const [t, a] = await Promise.all([api('/api/agent-tags'), api('/api/agents')]);
+  if (t.code !== 0 || a.code !== 0) return toast('加载失败');
+  TAGS = t.data; AGENTS = a.data;
+  renderTags(); renderTagSelect(); renderAgents();
+  loadBadges();
+}
+
+function renderTags() {
+  const counts = {};
+  AGENTS.forEach(a => counts[a.tag_id] = (counts[a.tag_id] || 0) + 1);
+  $('tag-count').textContent = TAGS.length + ' 个';
+  $('tag-list').innerHTML = `
+    <div class="tag-item ${TAG_FILTER === '' ? 'on' : ''}" onclick="pickTag('')">
+      全部分类 <span class="c">${AGENTS.length}</span>
+    </div>` +
+    TAGS.map(t => `
+    <div class="tag-item ${String(TAG_FILTER) === String(t.id) ? 'on' : ''}" onclick="pickTag(${t.id})">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name)}</span>
+      <span class="c">${counts[t.id] || 0}</span>
+      <span class="acts" onclick="event.stopPropagation()">
+        <span onclick="openTag(${t.id})">改</span>
+        <span onclick="delTag(${t.id})">删</span>
+      </span>
+    </div>`).join('');
+}
+
+function renderTagSelect() {
+  $('tag-sel').innerHTML = '<option value="">全部分类</option>' +
+    TAGS.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+}
+
+function pickTag(id) {
+  TAG_FILTER = id;
+  $('tag-sel').value = id ? String(id) : '';
+  renderTags(); renderAgents();
+}
+
+function renderAgents() {
+  const kw = $('kw').value.trim().toLowerCase();
+  const tag = $('tag-sel').value;
+  const st = $('st-sel').value;
+  let list = AGENTS.slice();
+  if (tag) list = list.filter(a => String(a.tag_id) === tag);
+  if (st) list = list.filter(a => a.status === st);
+  if (kw) list = list.filter(a => (a.name + ' ' + (a.description || '')).toLowerCase().includes(kw));
+  const body = $('rows');
+  if (!list.length) { body.innerHTML = '<tr><td colspan="7" class="empty">没有符合条件的智能体</td></tr>'; return; }
+  body.innerHTML = list.map(a => `
+    <tr>
+      <td>
+        <b>${esc(a.name)}</b>
+        <div class="small muted" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.description || '—')}</div>
+      </td>
+      <td class="small">${esc(a.tag_name)}</td>
+      <td class="small">${esc(a.region || '—')}</td>
+      <td class="mono small">${Number(a.price) > 0 ? '￥' + Number(a.price) + ' / ' + (a.duration_days || 365) + ' 天' : '<span class="muted">未定价</span>'}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td class="mono small">${fmtTime(a.created_at)}</td>
+      <td>
+        <div class="op">
+          <button class="btn" onclick="openGrant(${a.id})">授权商家</button>
+          <button class="btn" onclick="openAgent(${a.id})">编辑</button>
+          <button class="btn" onclick="toggleAgent(${a.id},'${a.status}')">${a.status === 'running' ? '停用' : '启用'}</button>
+          <button class="btn btn-danger" onclick="delAgent(${a.id})">删除</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+/* ---------- 分类 ---------- */
+function openTag(id) {
+  const t = id ? TAGS.find(x => x.id === id) : null;
+  openModal(`<h3>${t ? '编辑分类' : '新建分类'}</h3>
+    <div class="field"><label>分类名称 <em>*</em></label><input id="t-name" value="${t ? esc(t.name) : ''}" placeholder="如：电话营销" /></div>
+    <div class="field"><label>排序（越小越靠前）</label><input id="t-sort" type="number" value="${t ? t.sort : TAGS.length}" /></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveTag(${id || 'null'})">保存</button>
+    </div>`);
+}
+async function saveTag(id) {
+  const name = $('t-name').value.trim();
+  if (!name) return toast('分类名称不能为空');
+  const payload = { name, sort: parseInt($('t-sort').value || '0', 10) };
+  const j = id ? await api('/api/agent-tags/' + id, 'PUT', payload)
+               : await api('/api/agent-tags', 'POST', payload);
+  if (j.code === 0) { toast('已保存'); closeModal(); loadAll(); }
+  else toast(j.msg || '保存失败');
+}
+async function delTag(id) {
+  const t = TAGS.find(x => x.id === id);
+  const name = t ? t.name : ('ID ' + id);
+  if (!confirm(`删除分类「${name}」？分类下仍有智能体时不允许删除。`)) return;
+  const j = await api('/api/agent-tags/' + id, 'DELETE');
+  if (j.code === 0) { toast('已删除'); if (String(TAG_FILTER) === String(id)) TAG_FILTER = ''; loadAll(); }
+  else toast(j.msg || '删除失败');
+}
+
+/* ---------- 智能体 ---------- */
+function openAgent(id) {
+  const a = id ? AGENTS.find(x => x.id === id) : null;
+  if (!TAGS.length) return toast('请先创建至少一个分类');
+  openModal(`<h3>${a ? '编辑智能体' : '新建智能体'}</h3>
+    <div class="form-row">
+      <div class="field"><label>所属分类 <em>*</em></label>
+        <select id="a-tag">${TAGS.map(t => `<option value="${t.id}" ${a && a.tag_id === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>区域</label>
+        <select id="a-region">${['国内', '海外'].map(r => `<option ${a && a.region === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="field"><label>智能体名称 <em>*</em></label><input id="a-name" value="${a ? esc(a.name) : ''}" placeholder="如：电话营销·国内" /></div>
+    <div class="form-row">
+      <div class="field"><label>购买价格（元，0=未定价不可购买）</label><input id="a-price" type="number" min="0" value="${a ? (a.price || 0) : 0}" /></div>
+      <div class="field"><label>有效期（天）</label><input id="a-days" type="number" min="1" value="${a ? (a.duration_days || 365) : 365}" /></div>
+    </div>
+    <div class="field"><label>能力描述</label><textarea id="a-desc" placeholder="展示在商家端二级列表下方">${a ? esc(a.description) : ''}</textarea></div>
+    <div class="field"><label>跳转链接（可选）</label><input id="a-link" value="${a ? esc(a.link) : ''}" placeholder="https:// 或相对路径，填写后商家端「跳转」按钮直接打开" /></div>
+    <div class="field"><label>状态</label>
+      <select id="a-status">
+        <option value="running" ${a && a.status === 'running' ? 'selected' : ''}>运行中（商家可见可用）</option>
+        <option value="stopped" ${a && a.status === 'stopped' ? 'selected' : ''}>已停用</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveAgent(${id || 'null'})">保存</button>
+    </div>`, true);
+}
+async function saveAgent(id) {
+  const name = $('a-name').value.trim();
+  if (!name) return toast('智能体名称不能为空');
+  const payload = {
+    tag_id: parseInt($('a-tag').value, 10),
+    name, region: $('a-region').value,
+    description: $('a-desc').value.trim(),
+    link: $('a-link').value.trim(),
+    status: $('a-status').value,
+    price: parseInt($('a-price').value || '0', 10),
+    duration_days: parseInt($('a-days').value || '365', 10),
+  };
+  const j = id ? await api('/api/agents/' + id, 'PUT', payload) : await api('/api/agents', 'POST', payload);
+  if (j.code === 0) { toast('已保存'); closeModal(); loadAll(); }
+  else toast(j.msg || '保存失败');
+}
+async function toggleAgent(id, status) {
+  const next = status === 'running' ? 'stopped' : 'running';
+  const j = await api('/api/agents/' + id, 'PUT', { status: next });
+  if (j.code === 0) { toast(next === 'running' ? '已启用' : '已停用'); loadAll(); }
+  else toast(j.msg || '操作失败');
+}
+async function delAgent(id) {
+  const a = AGENTS.find(x => x.id === id);
+  const name = a ? a.name : ('ID ' + id);
+  if (!confirm(`删除智能体「${name}」？删除后商家端不再展示。`)) return;
+  const j = await api('/api/agents/' + id, 'DELETE');
+  if (j.code === 0) { toast('已删除'); loadAll(); }
+  else toast(j.msg || '删除失败');
+}
+
+/* ---------- 购买记录 ---------- */
+async function openOrders(page) {
+  page = page || 1;
+  const kw = ($('o-kw') ? $('o-kw').value.trim() : '');
+  const j = await api(`/api/admin/agent-orders?page=${page}&pageSize=10&keyword=${encodeURIComponent(kw)}`);
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  const { list, total } = j.data;
+  const pages = Math.max(1, Math.ceil(total / 10));
+  const chName = { points: '点数支付', admin: '管理员开通', wechat: '微信支付', alipay: '支付宝' };
+  openModal(`
+    <h3>智能体购买 / 开通记录 <span class="small muted">（共 ${total} 条）</span></h3>
+    <div style="display:flex;gap:8px;margin:12px 0">
+      <input class="inp" id="o-kw" value="${esc(kw)}" placeholder="订单号 / 商家 / 智能体，回车查询"
+        onkeydown="if(event.key==='Enter')openOrders(1)" style="flex:1" />
+      <button class="btn" onclick="openOrders(1)">查询</button>
+    </div>
+    <div class="adm-table" style="max-height:46vh;overflow:auto">
+      <table><thead><tr>
+        <th>订单号</th><th>商家</th><th>智能体</th><th>渠道</th><th>金额（￥）</th><th>到期变化</th><th>时间</th>
+      </tr></thead><tbody>
+      ${list.length ? list.map(o => `
+        <tr>
+          <td class="mono small">${esc(o.order_no)}</td>
+          <td class="small">${esc(o.company)}<div class="small muted">${esc(o.phone)}</div></td>
+          <td class="small">${esc(o.agent_name)}</td>
+          <td class="small">${chName[o.channel] || esc(o.channel)}</td>
+          <td class="mono small">${o.amount || 0}</td>
+          <td class="mono small">${(o.paid_at || o.created_at || '').slice(0, 10)} +${o.duration_days}天</td>
+          <td class="mono small">${fmtTime(o.created_at)}</td>
+        </tr>`).join('') : '<tr><td colspan="7" class="empty">暂无记录</td></tr>'}
+      </tbody></table>
+    </div>
+    <div style="display:flex;justify-content:center;gap:10px;margin-top:12px" class="small">
+      <button class="btn btn-sm" ${page <= 1 ? 'disabled' : ''} onclick="openOrders(${page - 1})">上一页</button>
+      <span class="muted" style="align-self:center">${page} / ${pages}</span>
+      <button class="btn btn-sm" ${page >= pages ? 'disabled' : ''} onclick="openOrders(${page + 1})">下一页</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal()">关闭</button>
+    </div>`, true);
+}
+
+/* ---------- 手动开通 / 续期 ---------- */
+async function openGrant(agentId) {
+  const mj = await api('/api/admin/merchants?page=1&pageSize=100');
+  if (mj.code !== 0) return toast(mj.msg || '商家列表加载失败');
+  const merchants = mj.data.list || [];
+  const more = (mj.data.total || merchants.length) > merchants.length;
+  if (!merchants.length) return toast('暂无商家');
+  if (!AGENTS.length) return toast('请先创建智能体');
+  const defAgent = agentId || AGENTS[0].id;
+  const pre = AGENTS.find(a => a.id === defAgent) || AGENTS[0];
+  openModal(`
+    <h3>开通 / 续期智能体</h3>
+    <p class="small muted">管理员赠送开通，不扣商家点数；未到期前重复开通自动顺延。</p>
+    <div class="field"><label>商家 <em>*</em></label>
+      <select id="g-m" onchange="syncGrantHint()">${merchants.map(c => `<option value="${c.id}">${esc(c.company)}（${esc(c.phone)}）</option>`).join('')}</select>
+      ${more ? '<div class="hint">商家超过 100 家，此处仅列出前 100 家；其它商家可在「商家管理 → 商家详情 → 智能体授权」中开通</div>' : ''}
+    </div>
+    <div class="field"><label>智能体 <em>*</em></label>
+      <select id="g-a" onchange="syncGrantHint()">${AGENTS.map(a => `<option value="${a.id}" ${a.id === defAgent ? 'selected' : ''}>${esc(a.name)}${Number(a.price) > 0 ? '（￥' + a.price + ' / ' + (a.duration_days || 365) + ' 天）' : ''}</option>`).join('')}</select>
+    </div>
+    <div class="field"><label>有效期（天）</label>
+      <input id="g-days" type="number" min="1" value="${pre.duration_days || 365}" />
+      <div class="small muted" id="g-hint" style="margin-top:6px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doGrant()">确认开通</button>
+    </div>`);
+  syncGrantHint();
+}
+
+async function syncGrantHint() {
+  const a = AGENTS.find(x => String(x.id) === String($('g-a').value));
+  const hint = $('g-hint');
+  if (!a || !hint) return;
+  const priceTip = a.price > 0
+    ? '定价 ￥' + a.price + ' / ' + (a.duration_days || 365) + ' 天（仅作记录，商家端不展示价格与购买入口）'
+    : '未填写价格（商家端同样只显示跳转，是否开通由管理员控制）';
+  hint.innerHTML = esc(priceTip);
+
+  // 顺带显示该商家当前是否已开通、到期时间（便于判断开通还是续期）
+  const mid = $('g-m') ? $('g-m').value : '';
+  if (!mid) return;
+  const j = await api('/api/admin/merchants/' + mid + '/agents');
+  if (j.code !== 0 || !$('g-hint')) return;
+  const row = (j.data.list || []).find(x => String(x.id) === String($('g-a').value));
+  if (!row) return;
+  const state = row.active
+    ? '<span style="color:var(--accent)">该商家已开通，到期 ' + esc((row.expire_at || '').slice(0, 10)) + '，本次操作将顺延</span>'
+    : row.expired
+      ? '<span style="color:#c0392b">该商家授权已于 ' + esc((row.expire_at || '').slice(0, 10)) + ' 过期，本次从今天起算</span>'
+      : '<span>该商家尚未开通此智能体</span>';
+  $('g-hint').innerHTML = esc(priceTip) + '<br>' + state;
+}
+
+async function doGrant() {
+  const body = {
+    merchant_id: parseInt($('g-m').value, 10),
+    agent_id: parseInt($('g-a').value, 10),
+    days: parseInt($('g-days').value || '365', 10),
+  };
+  if (!body.days || body.days <= 0) return toast('有效期必须大于 0 天');
+  const j = await api('/api/admin/agent-grant', 'POST', body);
+  if (j.code === 0) { toast(j.msg || '已开通'); closeModal(); loadAll(); }
+  else toast(j.msg || '操作失败');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+/*
+ * 中文导读：网页通话组件：public-widget-cors.ts。相关类型、配置或辅助实现集中在本文件。
+ */
+import type { RequestHandler, Response } from "express";
+import { ForbiddenError } from "../../common/errors/forbidden.js";
+
+export function createPublicWidgetCors(
+  originAllowed: (
+    widgetId: string,
+    origin: string | undefined,
+  ) => Promise<boolean>,
+): RequestHandler {
+  return async (req, res, next) => {
+    try {
+      // Apply before parsers and rate limits so allowed sites can read errors.
+      res.removeHeader("Access-Control-Allow-Origin");
+      res.vary("Origin");
+      const origin = req.headers.origin;
+      const allowed =
+        typeof req.params.widgetId === "string" &&
+        (await originAllowed(req.params.widgetId, origin));
+      if (allowed && origin) setPublicWidgetCorsHeaders(res, origin);
+      if (req.method === "OPTIONS") {
+        res.status(allowed ? 204 : 403).end();
+        return;
+      }
+      if (origin && !allowed) {
+        throw new ForbiddenError("Origin is not allowed for this widget");
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+export function setPublicWidgetCorsHeaders(res: Response, origin: string) {
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.vary("Origin");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader(
+    "Access-Control-Expose-Headers",
+    "Retry-After, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset",
+  );
+  res.setHeader("Access-Control-Max-Age", "600");
+}

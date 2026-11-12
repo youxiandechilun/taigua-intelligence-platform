@@ -1,0 +1,1145 @@
+/*
+ * 中文导读：应用根级的页面辅助代码；由 Next.js 按文件路由约定加载。
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-home-background: var(--bg-gradient);
+  --dashboard-src: var(--dashboard-src);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-rgb: var(--primary-rgb);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --font-geist-sans: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-geist-mono: "SFMono-Regular", Consolas, monospace;
+  --bg-gradient: linear-gradient(135deg, #ffffff 0%, #f2f2f2 100%);
+  --dashboard-src: url("/light-dashboard.png");
+  --radius: 0.5rem;
+  /* Taigua brand: restrained neutrals with a red accent. */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #b83240;
+  --primary-rgb: 184, 50, 64;
+  --primary-foreground: #ffffff;
+  --secondary: #f8fafc;
+  --secondary-foreground: #334155;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --loading: #9fa1a3;
+  --accent-foreground: #334155;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #b83240;
+  --chart-1: #b83240;
+  --chart-2: #3b82f6;
+  --chart-3: #60a5fa;
+  --chart-4: #93c5fd;
+  --chart-5: #bfdbfe;
+  --sidebar: #f8fafc;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #b83240;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #334155;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #b83240;
+  --scrollbar-bg: #f1f5f9; /* light background */
+  --scrollbar-thumb: #0d0505; /* light thumb */
+  --scrollbar-thumb-hover: #94a3b8; /* light thumb hover */
+}
+
+.dark {
+  /* Dark Mode - Black and purple theme like the image */
+  --bg-gradient: linear-gradient(135deg, #000000 0%, #1a0a2e 100%);
+  --dashboard-src: url("/dark-dashboard.png");
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #0a0a0a;
+  --card-foreground: #ffffff;
+  --popover: #0a0a0a;
+  --popover-foreground: #ffffff;
+  --primary: #d95862;
+  --primary-rgb: 217, 88, 98;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #e2e8f0;
+  --muted: #1a1a1a;
+  --muted-foreground: #94a3b8;
+  --accent: #1a1a1a;
+  --accent-foreground: #e2e8f0;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #262626;
+  --input: #3b3b3b;
+  --ring: #d95862;
+  --chart-1: #d95862;
+  --chart-2: #a855f7;
+  --chart-3: #c084fc;
+  --chart-4: #d8b4fe;
+  --chart-5: #e9d5ff;
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #d95862;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #e2e8f0;
+  --sidebar-border: #262626;
+  --sidebar-ring: #d95862;
+  --scrollbar-bg: #18181b; /* dark background */
+  --scrollbar-thumb: #89898d; /* dark thumb */
+  --scrollbar-thumb-hover: #52525b; /* dark thumb hover */
+}
+/* For Chrome, Edge, and Safari */
+body,
+* {
+  scrollbar-width: 12px;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bg);
+}
+
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 12px;
+  background: var(--scrollbar-bg);
+}
+
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(20px) rotate(4deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(-4deg);
+  }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Continuous Scrolling Animations */
+@keyframes scroll-right {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-scroll-right {
+  animation: scroll-right 20s linear infinite;
+}
+
+.animate-scroll-left {
+  animation: scroll-left 20s linear infinite;
+}
+
+/* Pause animation on hover */
+.animate-scroll-right:hover,
+.animate-scroll-left:hover {
+  animation-play-state: paused;
+}
+
+/* Vertical Scrolling Animation */
+@keyframes scroll-vertical {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+.animate-scroll-vertical {
+  animation: scroll-vertical 40s linear infinite;
+}
+
+/* Pause vertical animation on hover */
+.animate-scroll-vertical:hover {
+  animation-play-state: paused;
+}
+
+/* Smooth Vertical Scrolling Animation like Verloop */
+@keyframes scroll-vertical-smooth {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-scroll-vertical-smooth {
+  animation: scroll-vertical-smooth 20s linear infinite;
+}
+
+/* Pause smooth vertical animation on hover */
+.animate-scroll-vertical-smooth:hover {
+  animation-play-state: paused;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
+
+@layer utilities {
+  .bg-light-gradient {
+    background-image: linear-gradient(135deg, #ffffff 0%, #f2f2f2 100%);
+  }
+
+  .bg-dark-gradient {
+    background-image: linear-gradient(135deg, #0a0613 0%, #150d27 100%);
+  }
+}
+
+/* Login colors stay scoped to the public page. */
+.dark .taigua-login {
+  color-scheme: dark;
+  --background: #141416;
+  --foreground: #f5f5f6;
+  --input: #414149;
+  --muted-foreground: #a5a5af;
+  --primary: #c63e4b;
+  --primary-rgb: 198, 62, 75;
+  --ring: #d95862;
+}
+
+.dark .taigua-login [data-slot="input"],
+.dark .taigua-login [data-slot="input-group"] {
+  background-color: #202024;
+}
+
+.taigua-login [data-slot="input"]:focus-visible,
+.taigua-login [data-slot="input-group"]:has(input:focus-visible) {
+  --tw-ring-color: color-mix(in srgb, var(--ring) 25%, transparent);
+}
+
+/* Public login decoration uses the platform brand independently of workspaces. */
+.taigua-logo-wall {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100svh;
+  overflow: hidden;
+  background: transparent;
+  contain: layout paint;
+}
+
+.taigua-logo-wall-mask {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent),
+    linear-gradient(to right, transparent 2%, #000 38%, #000 82%, transparent);
+  mask-composite: intersect;
+}
+
+.taigua-logo-wall-tilt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1720px;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  display: flex;
+  flex-direction: column;
+  gap: 76px;
+}
+
+.taigua-logo-wall-row {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  backface-visibility: hidden;
+  animation: taigua-logo-marquee 78s linear infinite;
+}
+
+.taigua-logo-wall-row:nth-child(3n) { animation-duration: 92s; }
+.taigua-logo-wall-row:nth-child(3n + 2) { animation-duration: 84s; }
+.taigua-logo-wall-row-reverse { animation-direction: reverse; }
+
+.taigua-logo-wall-group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 64px;
+  padding-right: 64px;
+}
+
+.taigua-logo-wall-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 280px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.taigua-logo-wall-artwork {
+  width: 280px;
+  aspect-ratio: 560 / 81;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.taigua-logo-wall-artwork-near { background-image: url("/brand/taigua-marquee-near.webp"); }
+.taigua-logo-wall-artwork-middle { background-image: url("/brand/taigua-marquee-middle.webp"); }
+.taigua-logo-wall-artwork-far { background-image: url("/brand/taigua-marquee-far.webp"); }
+.dark .taigua-logo-wall-artwork-near { background-image: url("/brand/taigua-marquee-dark-near.webp"); }
+.dark .taigua-logo-wall-artwork-middle { background-image: url("/brand/taigua-marquee-dark-middle.webp"); }
+.dark .taigua-logo-wall-artwork-far { background-image: url("/brand/taigua-marquee-dark-far.webp"); }
+
+@keyframes taigua-logo-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taigua-logo-wall-row { animation: none; will-change: auto; }
+}
+
+/* Digital employee sorting and compact call header. */
+.agent-sort-item { position: relative; }
+.agent-sort-item[data-dragging] { opacity: .45; }
+.agent-sort-item[data-drop-target] { outline: 1px solid color-mix(in srgb, var(--primary) 45%, transparent); outline-offset: -1px; background-color: color-mix(in srgb, var(--primary) 4%, var(--card)); }
+.calls-page-header { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 16px 24px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+.calls-page-filters { grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+.calls-page-actions { justify-self: end; grid-column: 2; grid-row: 1; }
+@media (max-width: 640px) {
+ .calls-page-header { grid-template-columns: 1fr; gap: 12px; }
+ .calls-page-actions { grid-column: 1; grid-row: 2; justify-self: start; }
+ .calls-page-filters { grid-row: 3; }
+}
+
+@media (hover: none) { .agent-sort-subtle { opacity: .4; } }
+
+/* CRM visual unification: scope through the existing customer summary. */
+div:has(> header > dl[aria-label="客户统计"]) {
+  --color-primary: #b83240;
+  --color-secondary: #64748b;
+  --color-surface: var(--card);
+  --color-surface-subtle: var(--secondary);
+  --color-line: var(--border);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 5%);
+  --shadow-md: 0 4px 12px 0 rgb(15 23 42 / 8%);
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.dark div:has(> header > dl[aria-label="客户统计"]) {
+  --color-primary: var(--primary);
+  --color-secondary: var(--muted-foreground);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > :not(:last-child) {
+  margin-block-start: 0;
+  margin-block-end: var(--space-lg);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > header {
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg) var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-line);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) dl[aria-label="客户统计"] {
+  align-items: center;
+  gap: var(--space-md) var(--space-xl);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) dl[aria-label="客户统计"] > div {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) dl[aria-label="客户统计"] dt {
+  color: var(--color-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) dl[aria-label="客户统计"] dd {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > header + div {
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-subtle);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [role="group"][aria-label="客户范围"] {
+  gap: var(--space-xs);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > header + div > div:last-child {
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="button"],
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="input"],
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="native-select"] {
+  height: 36px;
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 20px;
+  box-shadow: none;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="button"] {
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  font-weight: 500;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [role="group"][aria-label="客户范围"] [aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  background-color: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  color: var(--color-primary);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="native-select"] {
+  width: 128px;
+  min-width: 128px;
+  flex-shrink: 0;
+  padding-inline: var(--space-md) var(--space-2xl);
+  background-color: var(--color-surface);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [aria-label="筛选客户意向"] {
+  width: 144px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [aria-label="筛选微信进度"] {
+  width: 224px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="input"][aria-label="搜索意向客户"] {
+  width: 256px;
+  min-width: 192px;
+  padding-right: var(--space-md);
+  padding-left: var(--space-2xl);
+  background-color: var(--color-surface);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="input"]:hover,
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="native-select"]:hover {
+  border-color: var(--color-secondary);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="button"]:focus-visible,
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="input"]:focus-visible,
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="native-select"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > div:has(> [data-slot="table-container"]) {
+  border-color: var(--color-line);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: none;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="table-header"] [data-slot="table-row"] {
+  background-color: var(--color-surface-subtle);
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="table-head"] {
+  height: 48px;
+  padding: var(--space-md) var(--space-lg);
+  color: var(--color-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="table-cell"] {
+  padding: var(--space-md) var(--space-lg);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="table-cell"]:first-child > span {
+  color: var(--color-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="table-cell"]:nth-child(3) > span {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="button"][aria-label^="标为"],
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="button"][aria-label="上一页客户"],
+div:has(> header > dl[aria-label="客户统计"]) [data-slot="button"][aria-label="下一页客户"] {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > div:has(> div > button[aria-label="下一页客户"]) {
+  justify-content: flex-start;
+  gap: var(--space-xl);
+  color: var(--color-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > [role="alert"],
+div:has(> header > dl[aria-label="客户统计"]) > div:has(> a[href="/calls"]) {
+  padding: var(--space-2xl);
+  border-color: var(--color-line);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+div:has(> header > dl[aria-label="客户统计"]) > [role="status"] {
+  padding-block: var(--space-2xl);
+  color: var(--color-secondary);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@media (max-width: 1100px) {
+  div:has(> header > dl[aria-label="客户统计"]) > header + div > div:last-child {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  div:has(> header > dl[aria-label="客户统计"]) > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  div:has(> header > dl[aria-label="客户统计"]) [data-slot="input"][aria-label="搜索意向客户"] {
+    width: 100%;
+  }
+}
+
+/* Calls visual unification: scope through the existing page header. */
+div:has(> header.calls-page-header) {
+  --color-primary: #b83240;
+  --color-secondary: #64748b;
+  --color-surface: var(--card);
+  --color-surface-subtle: var(--secondary);
+  --color-line: var(--border);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 5%);
+  --shadow-md: 0 4px 12px 0 rgb(15 23 42 / 8%);
+  gap: var(--space-lg);
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.dark div:has(> header.calls-page-header) {
+  --color-primary: var(--primary);
+  --color-secondary: var(--muted-foreground);
+}
+
+div:has(> header.calls-page-header) .calls-page-header {
+  gap: var(--space-lg) var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom-color: var(--color-line);
+}
+
+div:has(> header.calls-page-header) .calls-page-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+}
+
+div:has(> header.calls-page-header) .calls-page-filters > div {
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-subtle);
+}
+
+div:has(> header.calls-page-header) .calls-page-actions > div {
+  gap: var(--space-sm);
+}
+
+div:has(> header.calls-page-header) button[data-slot],
+div:has(> header.calls-page-header) [data-slot="input"] {
+  height: 36px;
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 20px;
+  box-shadow: none;
+}
+
+div:has(> header.calls-page-header) button[data-slot] {
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  font-weight: 500;
+}
+
+div:has(> header.calls-page-header) button[data-size="icon"] {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+}
+
+div:has(> header.calls-page-header) [data-slot="select-trigger"] {
+  flex-shrink: 0;
+  padding-inline: var(--space-md);
+}
+
+div:has(> header.calls-page-header) [aria-label="筛选数字员工"] {
+  width: 144px;
+}
+
+div:has(> header.calls-page-header) [aria-label="筛选通话状态"],
+div:has(> header.calls-page-header) [aria-label="筛选客户意向"],
+div:has(> header.calls-page-header) [aria-label="筛选微信进度"] {
+  width: 128px;
+}
+
+div:has(> header.calls-page-header) [aria-label="筛选通话类型"] {
+  width: 112px;
+}
+
+div:has(> header.calls-page-header) form[role="search"] [data-slot="input"] {
+  width: 256px;
+  padding-right: 80px;
+  padding-left: var(--space-md);
+  background-color: var(--color-surface);
+  caret-color: var(--color-primary);
+}
+
+div:has(> header.calls-page-header) form[role="search"] > div {
+  top: 0;
+  right: 0;
+  gap: 0;
+}
+
+div:has(> header.calls-page-header) [data-slot="input"]::placeholder {
+  color: var(--color-secondary);
+  opacity: 1;
+}
+
+div:has(> header.calls-page-header) button:focus-visible,
+div:has(> header.calls-page-header) [data-slot="input"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+div:has(> header.calls-page-header) > .space-y-3 > :not(:last-child) {
+  margin-block-start: 0;
+  margin-block-end: var(--space-lg);
+}
+
+div:has(> header.calls-page-header) > .space-y-3 > div:has(> [data-slot="table-container"]) {
+  border-color: var(--color-line);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: none;
+}
+
+div:has(> header.calls-page-header) [data-slot="table-header"] [data-slot="table-row"] {
+  background-color: var(--color-surface-subtle);
+}
+
+div:has(> header.calls-page-header) [data-slot="table-head"] {
+  height: 48px;
+  padding: var(--space-md) var(--space-lg);
+  color: var(--color-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+div:has(> header.calls-page-header) [data-slot="table-head"]:first-child {
+  border-top-left-radius: var(--radius-md);
+}
+
+div:has(> header.calls-page-header) [data-slot="table-head"]:last-child {
+  border-top-right-radius: var(--radius-md);
+}
+
+div:has(> header.calls-page-header) [data-slot="table-cell"] {
+  padding: var(--space-md) var(--space-lg);
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+div:has(> header.calls-page-header) [data-slot="table-cell"] .text-xs {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+div:has(> header.calls-page-header) [data-call-intent] {
+  gap: var(--space-xs);
+}
+
+div:has(> header.calls-page-header) [data-call-intent] > span {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+div:has(> header.calls-page-header) > .space-y-3 > div:has(button[aria-label="下一页"]) {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--space-md);
+  padding-inline: 0;
+  color: var(--color-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+div:has(> header.calls-page-header) > .space-y-3 > div:has(button[aria-label="下一页"]) > div {
+  justify-content: flex-start;
+  gap: var(--space-sm) var(--space-xl);
+}
+
+div:has(> header.calls-page-header) div:has(> button[aria-label="第一页"]) {
+  gap: var(--space-xs);
+}
+
+div:has(> header.calls-page-header) form[role="search"] [role="alert"] {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+body:has(header.calls-page-header) [data-slot="popover-content"]:is(:has([aria-label="开始日期"]), :has([aria-label="最短通话时长，单位秒"])) {
+  --shadow-md: 0 4px 12px 0 rgb(15 23 42 / 8%);
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  box-shadow: var(--shadow-md);
+}
+
+body:has(header.calls-page-header) [data-slot="popover-content"]:is(:has([aria-label="开始日期"]), :has([aria-label="最短通话时长，单位秒"])) :is(button, input) {
+  height: 36px;
+  min-height: 36px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* Outbound center visual unification, scoped to the existing task center. */
+div:has(> section[aria-label="快捷外呼"]) {
+  --color-primary: #b83240;
+  --color-secondary: #64748b;
+  --color-line: var(--border);
+  --color-surface: var(--card);
+  --color-surface-subtle: var(--secondary);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 5%);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 8%);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.dark div:has(> section[aria-label="快捷外呼"]) {
+  --color-primary: var(--primary);
+  --color-secondary: var(--muted-foreground);
+}
+
+div:has(> section[aria-label="快捷外呼"]) > section {
+  border-color: var(--color-line);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: none;
+}
+
+section[aria-label="快捷外呼"] > div:first-child {
+  padding: var(--space-lg) var(--space-xl);
+}
+
+section[aria-label="快捷外呼"] > div:first-child h2,
+section[aria-label="快捷外呼"] ~ section:last-of-type > div:first-child h2 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+section[aria-label="快捷外呼"] > form > div:first-child > div {
+  padding: var(--space-lg) var(--space-xl);
+}
+
+section[aria-label="快捷外呼"] > form > div:first-child > div:first-child {
+  gap: var(--space-md);
+}
+
+section[aria-label="快捷外呼"] > form > div:first-child > div:first-child > div:last-child {
+  margin-top: 0;
+  padding-top: 0;
+  gap: var(--space-sm) var(--space-lg);
+}
+
+section[aria-label="快捷外呼"] > form > div:first-child > div:nth-child(2) > :not(:last-child) {
+  margin-block-end: var(--space-md);
+}
+
+section[aria-label="快捷外呼"] :is(h3, label, legend) {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+section[aria-label="快捷外呼"] [id="quick-outbound-agent"] {
+  height: auto;
+  min-height: 36px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+section[aria-label="快捷外呼"] :is(select[data-slot="native-select"], input[data-slot="input"]),
+section[aria-label="快捷外呼"] fieldset button[data-slot="button"],
+section[aria-label="快捷外呼"] button[type="submit"],
+section[aria-label="超级管理员任务控制"] button[data-slot="button"] {
+  height: 36px;
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+section[aria-label="快捷外呼"] #quick-outbound-numbers,
+section[aria-label="快捷外呼"] [role="region"][aria-label^="本次有效号码"] {
+  height: 224px;
+  min-height: 224px;
+  max-height: 224px;
+  border-color: var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+section[aria-label="快捷外呼"] > form > details,
+section[aria-label="快捷外呼"] > form > div:last-child {
+  padding-inline: var(--space-xl);
+}
+
+section[aria-label="快捷外呼"] > form > details > div > div:has(> button[data-slot="button"] + span.text-xs.text-muted-foreground) {
+  display: none;
+}
+
+section[aria-label="超级管理员任务控制"] {
+  padding: var(--space-lg) var(--space-xl);
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type > div:first-child {
+  gap: var(--space-sm) var(--space-xl);
+  padding: var(--space-lg) var(--space-xl);
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type > div:has(input[aria-label="搜索任务或员工"]) {
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl);
+  background-color: var(--color-surface-subtle);
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type :is(input[aria-label="搜索任务或员工"], select[data-slot="native-select"], button[aria-label="搜索账号"]) {
+  height: 36px;
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type table {
+  width: 100%;
+  min-width: 1250px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type thead {
+  background-color: var(--color-surface-subtle);
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type th {
+  padding: var(--space-md);
+  color: var(--color-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type td {
+  padding: var(--space-md);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type :is(th, td):first-child {
+  min-width: 144px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type :is(th, td):nth-child(2) {
+  min-width: 144px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type td:nth-child(2) {
+  font-size: 12px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type :is(th, td):nth-last-child(8) {
+  min-width: 160px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type :is(th, td):nth-last-child(7) {
+  min-width: 72px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type :is(th, td):nth-last-child(6) {
+  min-width: 88px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type :is(th, td):nth-last-child(5) {
+  min-width: 240px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type :is(th, td):nth-last-child(-n + 4) {
+  padding-inline: var(--space-sm);
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type td:nth-last-child(-n + 4) button[data-slot="button"] {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: var(--radius-md);
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type > div:has(> nav[aria-label="任务分页"]) {
+  justify-content: flex-start;
+  gap: var(--space-xl);
+  padding: var(--space-md) var(--space-xl);
+  color: var(--color-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+section[aria-label="快捷外呼"] ~ section:last-of-type nav[aria-label="任务分页"] button {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+}
+
+/* The task detail dialog is rendered outside the outbound page container. */
+[role="dialog"]:has(> section[aria-label="任务客户名单"]) {
+  gap: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+[role="dialog"]:has(> section[aria-label="任务客户名单"]) > div:first-child h2 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+[role="dialog"]:has(> section[aria-label="任务客户名单"]) > div:nth-child(2) {
+  flex-shrink: 1;
+  max-height: 55dvh;
+  padding-inline-end: 8px;
+  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-width: thin;
+}
+
+[role="dialog"]:has(> section[aria-label="任务客户名单"]) > div:nth-child(2) > section:is([aria-label="任务外呼倍数"], [aria-label="任务自动重拨"]) {
+  padding: 12px;
+  border-radius: 8px;
+}
+
+[role="dialog"]:has(> section[aria-label="任务客户名单"]) > section[aria-label="任务客户名单"] {
+  border-radius: 8px;
+}
+
+/* Arrange the existing line selectors together when both are present. */
+@media (min-width: 1280px) {
+  section[aria-label="快捷外呼"] > form > div:first-child > div:nth-child(2):has(> label > select[aria-label="可用线路"]) {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    column-gap: 12px;
+    align-content: start;
+  }
+
+  section[aria-label="快捷外呼"] > form > div:first-child > div:nth-child(2):has(> label > select[aria-label="可用线路"]) > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  section[aria-label="快捷外呼"] > form > div:first-child > div:nth-child(2) > label:has(> select[aria-label="线路省份"]) {
+    grid-column: 1;
+  }
+
+  section[aria-label="快捷外呼"] > form > div:first-child > div:nth-child(2) > label:has(> select[aria-label="可用线路"]) {
+    grid-column: 2;
+  }
+
+  section[aria-label="快捷外呼"] > form > div:first-child > div:nth-child(2) > label:has(> select:is([aria-label="线路省份"], [aria-label="可用线路"])) > select {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Keep the unavailable-line alert while removing redundant line details. */
+section[aria-label="快捷外呼"] > form > div:first-child > div:nth-child(2) > label:has(> select[aria-label="线路省份"]) ~ div:has(> p:nth-child(2) > span.tabular-nums) > p:nth-child(-n+2):not([role="alert"]) {
+  display: none;
+}
+
+section[aria-label="快捷外呼"] > form > div:first-child > div:nth-child(2) > label:has(> select[aria-label="线路省份"]) ~ div:has(> p:nth-child(2) > span.tabular-nums):not(:has(> :nth-child(3))) {
+  display: none;
+}
+
+/* Accepted compact call records and cost summary, 2026-11-08. */
+div:has(> header.calls-page-header) .calls-page-filters > div {padding:12px;gap:8px;}
+div:has(> header.calls-page-header) .calls-page-filters [data-slot="select-trigger"] {width:auto;min-width:96px;flex:1 1 96px;}
+div:has(> header.calls-page-header) .calls-page-filters form[role="search"] {flex:1.5 1 170px;min-width:160px;}
+div:has(> header.calls-page-header) form[role="search"] [data-slot="input"] {width:100%;}
+div:has(> header.calls-page-header) .calls-page-filters {margin-bottom:0;}
+div:has(> header.calls-page-header) .calls-page-header {gap:12px 16px;padding-bottom:16px;}
+div:has(> header.calls-page-header) .calls-compact-table [data-slot="table-container"] {max-height:calc(100vh - 340px);overflow:auto;}
+div:has(> header.calls-page-header) .calls-compact-table [data-slot="table-head"] {height:40px;padding:8px 16px;background:var(--color-surface-subtle);}
+div:has(> header.calls-page-header) .calls-compact-table [data-slot="table-cell"] {height:72px;padding:4px 16px;vertical-align:middle;border-bottom:1px solid var(--color-line);font-size:14px;}
+div:has(> header.calls-page-header) .calls-compact-table tbody tr:nth-child(even) {background:#f8fafc;}
+div:has(> header.calls-page-header) .calls-compact-table tbody tr:hover {background:#f1f4f8;}
+div:has(> header.calls-page-header) .calls-cell-stack {display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
+div:has(> header.calls-page-header) .calls-compact-table [data-call-intent] {gap:8px;}
+div:has(> header.calls-page-header) .call-cost-cell {height:auto;min-height:0;padding:0;}
+.dark div:has(> header.calls-page-header) .calls-compact-table tbody tr:nth-child(even) {background:var(--color-surface-subtle);}
+.dark div:has(> header.calls-page-header) .calls-compact-table tbody tr:hover {background:var(--muted);}
+@media(max-width:1200px){div:has(> header.calls-page-header) .calls-compact-table [data-slot="table-container"] {max-height:calc(100vh - 400px);}}
+@media(max-width:900px){div:has(> header.calls-page-header) .calls-compact-table [data-slot="table-container"] {max-height:none;}}

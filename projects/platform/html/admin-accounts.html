@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>管理员账号 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>管理员账号</h1>
+          <p>管理后台的登录账号，拥有商家审核、点数调整等全部权限</p>
+        </div>
+        <div class="right">
+          <button class="btn btn-primary btn-sm" onclick="openCreate()">＋ 新增管理员</button>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px;background:var(--accent-soft);border-color:rgba(192,57,43,.25)">
+        <div class="small" style="color:var(--text-2)">
+          <b>安全提示：</b>管理员账号可操作全平台数据，请为每位运营人员分配独立账号，并定期更换密码；离职人员请及时删除。
+        </div>
+      </div>
+
+      <div class="adm-table">
+        <table>
+          <thead><tr>
+            <th style="width:56px">ID</th><th>工号</th><th>管理员名称</th><th>登录手机号</th><th>最近登录</th>
+            <th>创建时间</th><th style="width:200px">操作</th>
+          </tr></thead>
+          <tbody id="rows"><tr><td colspan="7" class="empty">加载中…</td></tr></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+let LIST = [];
+const $ = id => document.getElementById(id);
+
+(async () => {
+  const me = await admInit('admin-accounts.html');
+  if (!me) return;
+  load();
+})();
+
+async function load() {
+  const j = await api('/api/admin/admins');
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  LIST = j.data || [];
+  const body = $('rows');
+  if (!LIST.length) { body.innerHTML = '<tr><td colspan="7" class="empty">暂无管理员</td></tr>'; return; }
+  body.innerHTML = LIST.map(a => `
+    <tr>
+      <td class="mono small">${a.id}</td>
+      <td class="mono small"><b>${esc(a.staff_no || '—')}</b></td>
+      <td><b>${esc(a.company)}</b> ${ME && ME.id === a.id ? '<span class="badge green">当前登录</span>' : ''}</td>
+      <td class="mono small">${esc(a.phone)}</td>
+      <td class="mono small">${fmtTime(a.last_login)}</td>
+      <td class="mono small">${fmtTime(a.created_at)}</td>
+      <td>
+        <div class="op">
+          <button class="btn" onclick="openRename(${a.id})">改名</button>
+          <button class="btn" onclick="openPwd(${a.id})">改密</button>
+          <button class="btn btn-danger" onclick="del(${a.id})">删除</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function openCreate() {
+  openModal(`<h3>新增管理员</h3>
+    <div class="field"><label>管理员名称 <em>*</em></label><input id="a-name" placeholder="如：运营-小王" /></div>
+    <div class="field"><label>登录手机号 <em>*</em></label><input id="a-phone" placeholder="11 位手机号" /></div>
+    <div class="field"><label>初始密码 <em>*</em></label><input id="a-pwd" placeholder="至少 6 位" /></div>
+    <div class="hint">系统将自动分配登录工号（ADM 序号）；新管理员用「工号 + 密码」在管理端专属入口登录，手机号仅作资料留存。</div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doCreate()">创建</button>
+    </div>`);
+}
+async function doCreate() {
+  const data = {
+    name: $('a-name').value.trim(),
+    phone: $('a-phone').value.trim(),
+    password: $('a-pwd').value.trim(),
+  };
+  if (!data.name) return toast('请填写管理员名称');
+  if (!/^\d{11}$/.test(data.phone)) return toast('请输入 11 位手机号');
+  if (data.password.length < 6) return toast('密码至少 6 位');
+  const j = await api('/api/admin/admins', 'POST', data);
+  if (j.code === 0) { toast(j.msg || '管理员已创建'); closeModal(); load(); }
+  else toast(j.msg || '创建失败');
+}
+
+function openRename(id) {
+  const a = LIST.find(x => x.id === id);
+  openModal(`<h3>修改管理员名称</h3>
+    <div class="field"><label>名称</label><input id="r-name" value="${esc(a.company)}" /></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doRename(${id})">保存</button>
+    </div>`);
+}
+async function doRename(id) {
+  const name = $('r-name').value.trim();
+  if (!name) return toast('名称不能为空');
+  const j = await api('/api/admin/admins/' + id, 'PUT', { name });
+  if (j.code === 0) { toast('已保存'); closeModal(); load(); }
+  else toast(j.msg || '保存失败');
+}
+
+function openPwd(id) {
+  const a = LIST.find(x => x.id === id);
+  openModal(`<h3>重置管理员密码</h3>
+    <p class="small muted" style="margin-bottom:14px">${esc(a.company)}（工号 ${esc(a.staff_no || '—')}）</p>
+    <div class="field"><label>新密码</label><input id="r-pwd" placeholder="至少 6 位" /></div>
+    <div class="hint">重置后该账号需用新密码重新登录。</div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doPwd(${id})">确认重置</button>
+    </div>`);
+}
+async function doPwd(id) {
+  const password = $('r-pwd').value.trim();
+  if (password.length < 6) return toast('密码至少 6 位');
+  const j = await api('/api/admin/admins/' + id, 'PUT', { password });
+  if (j.code === 0) { toast('密码已重置'); closeModal(); }
+  else toast(j.msg || '重置失败');
+}
+
+async function del(id) {
+  const a = LIST.find(x => x.id === id);
+  const name = a ? a.company : ('ID ' + id);
+  if (!confirm(`删除管理员「${name}」？该账号将立即无法登录。`)) return;
+  const j = await api('/api/admin/admins/' + id, 'DELETE');
+  if (j.code === 0) { toast('已删除'); load(); } else toast(j.msg || '删除失败');
+}
+</script>
+</body>
+</html>

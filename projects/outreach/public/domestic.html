@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>国内私信拓客 · 泰卦智能</title>
+  <link rel="stylesheet" href="/console.css">
+  <link rel="stylesheet" href="/domestic.css">
+</head>
+<body>
+  <div class="domestic-layout">
+    <aside class="domestic-sidebar">
+      <a class="domestic-brand" href="/domestic">泰卦智能<span>国内私信拓客</span></a>
+      <nav aria-label="工作台导航" id="navigation"></nav>
+      <a class="platform-link" id="platform-link" href="/">返回平台主页</a>
+    </aside>
+    <main class="domestic-main">
+      <header class="domestic-header"><span>国内业务工作台</span><button id="logout" type="button">退出登录</button></header>
+      <div id="message" role="status" aria-live="polite"></div>
+      <section id="workspace" aria-busy="true"><p>正在读取工作台…</p></section>
+    </main>
+  </div>
+  <dialog id="editor" aria-labelledby="dialog-title">
+    <form id="editor-form">
+      <div class="dialog-title"><h2 id="dialog-title"></h2><button type="button" id="close-editor" aria-label="关闭">×</button></div>
+      <div id="editor-fields"></div>
+      <p id="editor-error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" id="cancel-editor">取消</button><button type="submit" class="primary">保存</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="/domestic.js"></script>
+</body>
+</html>

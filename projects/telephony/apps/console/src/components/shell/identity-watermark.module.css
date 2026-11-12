@@ -1,0 +1,14 @@
+/*
+ * 中文导读：应用外壳与导航的 identity-watermark.module 组件，封装该界面的展示与交互。
+ */
+.watermark {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  user-select: none;
+  background-repeat: repeat;
+  opacity: .085;
+}
+:global(.dark) .watermark { opacity: .15; }
+@media print { .watermark { position: fixed; print-color-adjust: exact; } }

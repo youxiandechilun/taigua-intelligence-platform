@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>私信拓客智能体（海外版） - 泰卦智能</title>
+<link rel="icon" href="/image/favicon.svg" type="image/svg+xml" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/common/agent.css" />
+</head>
+<body>
+<div class="console">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <a href="#"><img src="/image/logo.jpg" alt="泰卦智能" /></a>
+      <div class="bt"><b>私信拓客</b>DM Outreach</div>
+    </div>
+    <div class="env-band glb" title="当前页面所属区域版本"><i></i>海外版<span>全球市场 · GLOBAL</span></div>
+    <div class="side-scroll" id="side-nav"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb" id="crumb"></div>
+      <div class="right">
+        <span class="tag-env" id="env-tag"></span>
+        <button class="icon-btn" id="theme-btn" title="切换深色 / 浅色"></button>
+      </div>
+    </div>
+    <div class="main-inner" id="view"></div>
+  </div>
+</div>
+
+<script>
+window.AGENT_PAGE = {
+  slug: 'dm-global',
+  name: '私信拓客（海外）',
+  title: '私信拓客智能体（海外版）',
+  env: 'glb',
+  envName: '海外版',
+  market: '全球市场',
+  envText: '海外版',
+  kpis: ['今日找线索', '已加 WhatsApp', '开发信送达', '留资数'],
+  tableCols: ['线索', '来源', '进展', '更新时间'],
+  modules: [
+    { key: 'dashboard', name: '数据看板', flat: true, items: [
+      { key: 'letter-task', name: '开发信任务', desc: '开发信任务的下发量、送达率、打开率与回复率，支持按语种与账号维度对比。' },
+      { key: 'lead-list', name: '留资列表', desc: '汇总各渠道留资明细，展示来源国家、意向标签、跟进人与当前处理状态。' }
+    ]},
+    { key: 'account', name: '账号管理', items: [
+      { key: 'whatsapp', name: 'WhatsApp', desc: '绑定与管理 WhatsApp 商业账号，查看在线态、今日发送量与封控风险提示。' },
+      { key: 'email', name: '邮箱', desc: '管理发信邮箱与域名信誉，配置 SPF / DKIM、每日发信上限与退信处理策略。' }
+    ]},
+    { key: 'task', name: '任务中心', items: [
+      { key: 'find-lead', name: '找线索', desc: '按国家、行业与关键词在海外公域平台采集目标客户，自动去重并入库待触达。' },
+      { key: 'add-whatsapp', name: '加 WhatsApp', desc: '按节奏向线索发起 WhatsApp 会话，自动记录回复率并回写线索状态。' },
+      { key: 'send-letter', name: '发开发信', desc: '基于多语种模板批量发送开发信，支持变量替换、分批下发与回复自动识别。' }
+    ]},
+    { key: 'lead', name: '留资中心', items: [
+      { key: 'push', name: '留资推送', desc: '把新留资按国家与语种规则推送到海外企微、CRM 或指定邮箱，支持去重与优先级标记。' },
+      { key: 'customers', name: '客户管理', desc: '海外客户档案与跟进记录统一管理，支持标签分组、阶段流转与批量分配。' }
+    ]},
+    { key: 'kb', name: '知识库', items: [
+      { key: 'company', name: '公司介绍', desc: '维护公司简介、资质与出口案例素材，作为开发信与话术的引用来源。' },
+      { key: 'product', name: '产品介绍', desc: '维护产品参数、卖点与报价口径，供智能体自动生成多语种个性化内容。' }
+    ]}
+  ]
+};
+</script>
+<script src="/common/agent.js"></script>
+</body>
+</html>

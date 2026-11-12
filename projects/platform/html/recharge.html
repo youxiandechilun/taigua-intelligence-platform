@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TOKEN 充值 - 泰卦智能 商家服务平台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="common.css" />
+<style>
+.layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}}
+.qr-area{display:none;text-align:center;padding:20px 0 6px}
+.qr-area .qr{width:180px;height:180px;margin:0 auto 12px;border:1.5px dashed var(--border-strong);border-radius:14px;display:grid;place-items:center;color:var(--muted);font-size:13px;background:var(--bg)}
+.notice{background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.35);color:#d97706;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+/* 卡密兑换独立卡 */
+.agree{display:flex;gap:9px;align-items:flex-start;margin-top:14px;padding:11px 13px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:12.5px;color:var(--muted);cursor:pointer}
+.agree input{margin-top:2px;flex:0 0 auto}
+.agree b{color:var(--text-2)}
+.agree details{margin-top:6px}
+.agree summary{color:var(--accent);cursor:pointer;font-size:12px;user-select:none}
+.agree .ans{margin-top:7px;line-height:1.75}
+.inv-list{max-height:220px;overflow:auto;margin-top:10px}
+.inv-row{display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px dashed var(--border);font-size:12.5px}
+.inv-row:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="console">
+  <div id="sidebar-root"></div>
+  <main class="main">
+    <div class="main-inner">
+      <div class="page-head">
+        <span class="sec-tag">Token Recharge</span>
+        <h1>TOKEN 充值</h1>
+        <p>点数用于智能体运行消耗，1 点 = 1 次 API 调用额度</p>
+      </div>
+
+      <div class="notice">⚠️ 在线支付通道建设中；<b>点卡兑换已开放</b>，在下方「卡密兑换」输入卡密即可自助到账，如需充值请联系客服 <b>18925568615</b>。</div>
+
+      <div class="layout">
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <!-- 余额 -->
+          <div class="card plain" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div>
+              <div class="small muted">当前余额</div>
+              <div style="font-size:34px;font-weight:700;font-family:var(--mono)"><span id="balance">—</span> <span class="small muted" style="font-size:13px">点数</span></div>
+            </div>
+            <div class="mono small muted" id="phone-line"></div>
+          </div>
+
+          <!-- 充值档位 -->
+          <div class="card plain">
+            <div class="small" style="font-weight:600;margin-bottom:14px">选择充值档位</div>
+            <div class="tier-grid" id="tiers"><span class="small muted">加载中…</span></div>
+            <div class="divider"></div>
+            <!-- 支付方式 -->
+            <div class="small" style="font-weight:600;margin-bottom:12px">支付方式</div>
+            <div class="pay-way" id="pay-way">
+              <label class="sel" data-pay="wechat"><input type="radio" name="pay" checked /><span>微信支付</span><span class="badge">扫码 / H5</span></label>
+              <label data-pay="alipay"><input type="radio" name="pay" /><span>支付宝</span><span class="badge">扫码 / H5</span></label>
+            </div>
+            <div class="qr-area" id="qr-area">
+              <div class="qr">支付二维码<br/>（通道建设中）</div>
+              <div class="small muted">支付成功后 5 分钟内到账并推送通知</div>
+            </div>
+            <div style="margin-top:20px">
+              <button class="btn btn-primary" style="min-width:220px;padding:12px" id="btn-pay">立即支付</button>
+            </div>
+          </div>
+
+          <!-- 卡密兑换（独立板块 + 充值与退款协议） -->
+          <div class="card plain" id="redeem-card">
+            <div class="small" style="font-weight:600;margin-bottom:4px">卡密兑换</div>
+            <div class="small muted">输入平台「兑换码管理」下发的 16 位点卡卡密，一码一次，兑换成功点数立即到账。是否带分隔符都可以。</div>
+            <div class="copy-line" style="margin-top:14px">
+              <input id="card-code" placeholder="输入 16 位卡密，如 TK3F-7A9C-2E5B-8D1F" style="flex:1;padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13.5px" />
+              <button class="btn btn-primary" id="btn-redeem">立即兑换</button>
+            </div>
+            <label class="agree">
+              <input type="checkbox" id="agree-check" />
+              <span>
+                我已阅读并同意 <b>《充值与退款协议》（摘要）</b>
+                <details>
+                  <summary>查看协议摘要</summary>
+                  <div class="ans">① 卡密兑换的点数即时到账，随套餐周期有效；<br/>
+                  ② 已消耗点数不支持退款；<br/>
+                  ③ 未消耗点数如需退款，请联系客服 18925568615 申请，审核通过后按剩余点数原路退回；<br/>
+                  ④ 卡密一经兑换即与账号绑定，请妥善保管，平台不承担因卡密泄露造成的损失；<br/>
+                  ⑤ 平台有权对异常兑换行为（如批量套利、自邀）进行核验并限制到账。</div>
+                </details>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 右栏：邀请返利 + 客服 -->
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div class="card plain">
+            <div class="small" style="font-weight:600;margin-bottom:14px">邀请返利</div>
+            <div class="small muted" style="margin-bottom:6px">我的邀请码</div>
+            <div class="copy-line" style="margin-bottom:16px">
+              <span class="val" id="invite-code">—</span>
+              <button class="btn btn-sm" id="btn-copy">复制</button>
+            </div>
+            <div style="display:flex;gap:14px;margin-bottom:14px">
+              <div style="flex:1"><div class="stat-num" id="inv-count" style="font-size:24px">—</div><div class="small muted">已邀请人数</div></div>
+              <div style="flex:1"><div class="stat-num" id="inv-reward" style="font-size:24px">—</div><div class="small muted">累计奖励（点）</div></div>
+            </div>
+            <div class="small muted" id="inv-rule" style="margin-bottom:12px">好友用你的邀请码注册成功 → 你获得平台设置的奖励点数，自动入账；禁止自邀。</div>
+            <button class="btn btn-sm" id="btn-inv-list">邀请记录</button>
+          </div>
+
+          <div class="card plain">
+            <div class="small" style="font-weight:600;margin-bottom:10px">联系客服</div>
+            <div class="small">📞 客服电话：<b class="mono">18925568615</b></div>
+            <div class="small muted" style="margin-top:6px">充值 / 兑换问题也可在「客服中心」进入在线会话咨询</div>
+            <button class="btn btn-sm" style="margin-top:12px" onclick="location.href='/zt/support'">前往客服中心</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="common.js"></script>
+<script>
+let ME = null;
+const $ = s => document.querySelector(s);
+const f = id => document.getElementById(id);
+let TIERS = [];
+let selTier = 0;
+let INV = null;
+let CHANNELS = [];   // 管理端启用且配置完整的支付渠道
+
+(async () => {
+  ME = await initConsole('recharge.html');
+  if (!ME) return;
+  f('phone-line').textContent = ME.phone;
+  f('invite-code').textContent = ME.invite_code || '—';
+
+  const bal = await api('/api/token/balance');
+  if (bal.code === 0) f('balance').textContent = bal.data.balance;
+
+  renderTiersFromApi();
+  renderPayWay();
+  loadInvite();
+})();
+
+/* ---------- 充值档位：管理后台可配置 ---------- */
+async function renderTiersFromApi() {
+  const j = await api('/api/recharge/tiers');
+  TIERS = (j.code === 0 && j.data && j.data.length) ? j.data : [];
+  if (!TIERS.length) {
+    f('tiers').innerHTML = '<span class="small muted">暂无可选档位，请联系客服充值</span>';
+    f('btn-pay').disabled = true;
+    return;
+  }
+  selTier = Math.min(selTier, TIERS.length - 1);
+  renderTiers();
+}
+function renderTiers() {
+  f('tiers').innerHTML = TIERS.map((t, i) => `
+    <div class="tier${i === selTier ? ' sel' : ''}" onclick="pickTier(${i})">
+      <div class="price">￥${t.price}</div>
+      <div class="points">${t.points} 点</div>
+      <div class="unit">≈ ${(t.price / t.points * 1000).toFixed(1)} 元/千点</div>
+    </div>`).join('');
+  if (CHANNELS.length) syncPayBtn();
+  else f('btn-pay').textContent = '在线支付暂未开放';
+}
+function pickTier(i) { selTier = i; renderTiers(); }
+
+async function renderPayWay() {
+  const box = f('pay-way');
+  let list = [];
+  try {
+    const j = await api('/api/pay/channels');
+    if (j.code === 0) list = (j.data || []).filter(c => c.enabled);
+  } catch (e) { list = []; }
+  CHANNELS = list;
+
+  if (!list.length) {
+    // 管理端未启用任何在线支付渠道
+    box.innerHTML = '<div class="small muted" style="padding:10px 0;line-height:1.7">在线支付暂未开放，请使用下方「卡密兑换」充值，或联系客服处理。</div>';
+    f('qr-area').style.display = 'none';
+    f('btn-pay').disabled = true;
+    f('btn-pay').textContent = '在线支付暂未开放';
+    return;
+  }
+
+  box.innerHTML = list.map((c, i) => `
+    <label class="${i === 0 ? 'sel' : ''}" data-pay="${c.channel}">
+      <input type="radio" name="pay" ${i === 0 ? 'checked' : ''} />
+      <span>${c.name}</span>
+      <span class="badge${c.usable ? '' : ' red'}">${c.usable ? '扫码 / H5' : '配置中'}</span>
+    </label>`).join('');
+
+  box.querySelectorAll('label').forEach(l => {
+    l.addEventListener('click', () => {
+      box.querySelectorAll('label').forEach(x => x.classList.remove('sel'));
+      l.classList.add('sel');
+      f('qr-area').style.display = 'block';
+      syncPayBtn();
+    });
+  });
+
+  f('btn-pay').disabled = false;
+  f('qr-area').style.display = 'block';
+  syncPayBtn();
+}
+
+/* 按钮文案跟随当前所选渠道：有可用渠道就显示「立即支付」，否则提示配置中 */
+function syncPayBtn() {
+  const btn = f('btn-pay');
+  if (!TIERS.length) return;
+  const c = CHANNELS.find(x => x.channel === currentChannel());
+  if (c && c.usable) {
+    btn.disabled = false;
+    btn.textContent = `立即支付 ￥${TIERS[selTier] ? TIERS[selTier].price : ''}`;
+  } else if (c) {
+    btn.disabled = false;
+    btn.textContent = '该渠道配置中';
+  }
+}
+
+function currentChannel() {
+  const el = document.querySelector('#pay-way input:checked');
+  return el ? el.closest('label').dataset.pay : (CHANNELS[0] ? CHANNELS[0].channel : '');
+}
+
+// 立即支付 —— 走统一下单接口（管理端启用渠道后可用）
+f('btn-pay').onclick = async () => {
+  const t = TIERS[selTier];
+  if (!t) return;
+  const ch = currentChannel();
+  if (!ch) return toast('暂无可用的在线支付方式，请使用卡密兑换');
+  const c = CHANNELS.find(x => x.channel === ch);
+  if (c && !c.usable) {
+    return toast(`${c.name} 还在配置中（缺少 ${(c.missing || []).join('、') || '参数'}），请改用卡密兑换`);
+  }
+  const btn = f('btn-pay');
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '下单中…';
+  const j = await api('/api/pay/order', 'POST',
+    { kind: 'points', points: t.points, amount: t.price, channel: ch });
+  btn.disabled = false;
+  btn.textContent = old;
+  if (j.code === 0) {
+    toast('订单已创建，请完成支付');
+  } else if (j.code === 501) {
+    // 渠道已配置但 SDK 尚未接入：订单已落库，接入后可继续支付
+    toast(j.msg || '支付渠道即将开放');
+  } else {
+    toast(j.msg || '下单失败');
+  }
+};
+
+/* ---------- 卡密兑换（需先同意《充值与退款协议》） ---------- */
+f('btn-redeem').onclick = async () => {
+  const inp = f('card-code');
+  const code = inp.value.trim();
+  if (!code) return toast('请输入卡密');
+  if (!f('agree-check').checked) {
+    toast('请先阅读并勾选《充值与退款协议》（摘要）');
+    f('agree-check').focus();
+    return;
+  }
+  const btn = f('btn-redeem');
+  btn.disabled = true;
+  btn.textContent = '兑换中…';
+  const j = await api('/api/token/redeem', 'POST', { code });
+  btn.disabled = false;
+  btn.textContent = '立即兑换';
+  if (j.code !== 0) return toast(j.msg || '兑换失败');
+  inp.value = '';
+  toast(j.msg || '兑换成功');
+  f('balance').textContent = j.data.balance;
+};
+f('card-code').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); f('btn-redeem').click(); }
+});
+
+/* ---------- 邀请返利（真实统计） ---------- */
+async function loadInvite() {
+  const j = await api('/api/merchant/invite-stats');
+  if (j.code !== 0) { f('inv-count').textContent = '—'; f('inv-reward').textContent = '—'; return; }
+  INV = j.data;
+  f('inv-count').textContent = INV.invited_count;
+  f('inv-reward').textContent = INV.reward_total;
+  if (INV.reward_points > 0) {
+    f('inv-rule').innerHTML = `好友用你的邀请码注册成功 → 你获得 <b>${INV.reward_points}</b> 点奖励，自动入账；禁止自邀。`;
+  }
+}
+f('btn-copy').onclick = () => copyText(ME.invite_code || '');
+f('btn-inv-list').onclick = () => {
+  if (!INV) return toast('加载中，请稍候');
+  const list = INV.list || [];
+  openModal(`
+    <h3>邀请记录</h3>
+    <p class="small muted" style="margin:8px 0 12px">我的邀请码 <b class="mono">${esc(INV.invite_code)}</b> · 已邀请 ${INV.invited_count} 人 · 累计奖励 ${INV.reward_total} 点</p>
+    ${list.length ? `<div class="inv-list">${list.map(x => `
+      <div class="inv-row">
+        <span><b>${esc(x.company)}</b> <span class="muted small">${esc(x.phone)}</span></span>
+        <span class="badge ${x.status === '已认证' ? 'green' : 'warn'}">${esc(x.status)}</span>
+        <span class="mono small muted">${fmtTime(x.created_at)}</span>
+      </div>`).join('')}</div>`
+      : '<div class="empty" style="padding:22px 0">还没有邀请记录，把邀请码分享给同行好友吧</div>'}
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">关闭</button></div>
+  `, true);
+};
+</script>
+</body>
+</html>

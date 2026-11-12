@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>管理后台 · 私信拓客系统</title>
+<link rel="stylesheet" href="/console.css" />
+<link rel="stylesheet" href="/admin.css" />
+</head>
+<body class="admin-body">
+
+<div class="console" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand">
+      <img class="logo-full" src="/logo-full.png" alt="TAIKUA·泰卦智能" />
+    </div>
+
+    <div class="env-band adm"><i></i>管理员<span>ADMIN</span></div>
+
+    <div class="side-scroll" id="nav"></div>
+
+    <div class="side-foot">
+      <div class="side-sub" id="link-console">← 返回顾客端</div>
+      <div class="side-sub" id="link-health">服务状态</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menu-btn" aria-label="菜单">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="crumb" id="crumb"></div>
+      <div class="right">
+        <span class="tag-env adm">管理员</span>
+        <button class="icon-btn" id="theme-btn" aria-label="主题">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="main-inner" id="view"></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast"></div>
+
+<script src="/admin.js"></script>
+</body>
+</html>

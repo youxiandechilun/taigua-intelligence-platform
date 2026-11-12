@@ -1,0 +1,77 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+node_modules/
+.vscode/
+.idea/
+data/db/*.db
+data/videoFile/*
+data/cookiesFile/*
+data/s3_video_cache/
+!data/**/.gitkeep
+.DS_Store
+Thumbs.db
+.env
+*.env.local
+.superpowers/
+data/logs/*
+data/data/logs/*
+data/*
+
+
+# Build outputs
+frontend-dist/
+
+# Embedded Python
+python/
+.gstack/
+docs/superpowers/.claude/
+.claude/settings.local.json
+data/frames/*
+data/image-publish/*
+data/materials/*
+data/upload_chunks
+backend/bin/
+
+# 启动脚本临时文件
+.backend_deps_hash
+.frontend_deps_hash
+.mcp_deps_hash
+.backend.pid
+.frontend.pid
+.mcp.pid
+backend.log
+frontend.log
+mcp.logdependency/
+dependency*
+/QianFan*/
+*.log
+AGENTS.md
+
+# ZCode 工具配置
+.zcode/
+
+# Local credentials, databases, browser traces and test state
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.har
+*.trace.zip
+.pytest_cache/
+.coverage
+htmlcov/
+test-results/
+playwright-report/
+.codex-backups/
+.test-data/
+
+# 泰卦部署改造：运行数据和管理员初始化摘要不提交到源码仓库。
+team-data/
+deployment/bootstrap.json

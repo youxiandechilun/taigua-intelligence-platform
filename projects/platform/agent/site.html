@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>独立站智能体 - 泰卦智能</title>
+<link rel="icon" href="/image/favicon.svg" type="image/svg+xml" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/common/agent.css" />
+</head>
+<body>
+<div class="console">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <a href="#"><img src="/image/logo.jpg" alt="泰卦智能" /></a>
+      <div class="bt"><b>独立站智能体</b>Standalone Site</div>
+    </div>
+    <div class="env-band base" title="当前页面所属区域版本"><i></i>通用版<span>站点 · SEO · GEO</span></div>
+    <div class="side-scroll" id="side-nav"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb" id="crumb"></div>
+      <div class="right">
+        <span class="tag-env" id="env-tag"></span>
+        <button class="icon-btn" id="theme-btn" title="切换深色 / 浅色"></button>
+      </div>
+    </div>
+    <div class="main-inner" id="view"></div>
+  </div>
+</div>
+
+<script>
+window.AGENT_PAGE = {
+  slug: 'site',
+  name: '独立站智能体',
+  title: '独立站智能体',
+  env: 'base',
+  envName: '通用版',
+  market: '站点 · SEO · GEO',
+  envText: '独立站',
+  kpis: ['本月访问', '询盘数', '收录页面', 'SEO 健康度'],
+  tableCols: ['页面', '语言', '收录', '更新时间'],
+  modules: [
+    { key: 'builder', name: '网站生成', items: [
+      { key: 'framework', name: '框架生成', desc: '选择行业模板与配色，一键生成站点骨架与首页结构，支持后续可视化调整。' },
+      { key: 'nav', name: '导航管理', desc: '维护顶部导航、页脚与多级菜单，配置链接目标、排序与多语言映射。' }
+    ]},
+    { key: 'dashboard', name: '数据看板', items: [
+      { key: 'my-site', name: '我的网站', view: 'grid', desc: '站点总览：域名、语言版本、页面数量、发布状态与最近更新时间。' },
+      { key: 'report', name: '数据报告', desc: '访问量、来源渠道、停留时长与询盘转化漏斗，按周期对比趋势。' }
+    ]},
+    { key: 'site-manage', name: '网站管理', items: [
+      { key: 'info', name: '网站信息', desc: '维护站点名称、Logo、联系方式、备案信息与全局样式变量。' },
+      { key: 'domain', name: '域名管理', desc: '绑定主域名与子域名，查看解析状态、SSL 证书有效期与强制 HTTPS 设置。' },
+      { key: 'language', name: '语言管理', desc: '配置站点支持的语言与默认语种，管理翻译完成度与切换器展示方式。' }
+    ]},
+    { key: 'product', name: '产品管理', items: [
+      { key: 'category', name: '产品分类', desc: '维护多级产品分类与排序，配置分类页模板与关键词映射。' },
+      { key: 'list', name: '产品列表', desc: '批量维护产品标题、主图、详情与参数，支持导入导出与上下架。' },
+      { key: 'spec', name: '规格管理', desc: '定义产品规格维度与可选值，生成规格组合与对应价格、库存。' }
+    ]},
+    { key: 'seo', name: 'SEO引擎', items: [
+      { key: 'keyword', name: '关键词管理', desc: '维护目标关键词库，标注搜索量与竞争度，并映射到对应落地页面。' },
+      { key: 'tdk', name: '页面TDK设置', desc: '逐页配置标题、描述与关键词，支持批量生成与重复度检测。' },
+      { key: 'sitemap', name: '网站地图', desc: '自动生成 XML 站点地图与 HTML 地图，配置更新频率并提交搜索引擎。' },
+      { key: 'links', name: '友情链接', desc: '管理互换链接与合作伙伴入口，检测对方站点可用性与权重。' },
+      { key: 'redirect', name: '301重定向', desc: '维护旧链接到新链接的跳转规则，避免改版造成流量与收录流失。' },
+      { key: 'report-seo', name: 'SEO报告', desc: '按周输出收录、排名、流量与问题项变化，支持导出与订阅推送。' },
+      { key: 'audit', name: 'SEO检测', desc: '扫描全站死链、重复内容、缺失标签与加载性能，输出可执行的修复清单。' },
+      { key: 'alt', name: '图片ALT优化', desc: '批量检查图片替代文本，按页面语义自动补全并支持人工校正。' }
+    ]},
+    { key: 'geo', name: 'GEO引擎', items: [
+      { key: 'ai-lexicon', name: 'AI词库', desc: '维护面向生成式引擎的问答式词条与实体关系，提升被 AI 检索引用的概率。' },
+      { key: 'url-rule', name: 'URL规则', desc: '配置多语言与多分类的 URL 结构规则，统一大小写、分隔符与层级。' },
+      { key: 'robots', name: 'Robots设置', desc: '按 User-Agent 配置抓取白名单与屏蔽规则，并校验实际生效结果。' },
+      { key: 'canonical', name: 'Canonical管理', desc: '为重复或多语言页面指定规范地址，避免权重分散与内容重复收录。' },
+      { key: 'schema', name: '结构化数据', desc: '为产品、企业、FAQ 等页面生成 JSON-LD 结构化数据并校验有效性。' }
+    ]},
+    { key: 'lead', name: '留资中心', items: [
+      { key: 'inquiry', name: '询盘反馈', desc: '汇总站内表单与在线咨询的询盘，展示来源页面、产品与当前处理状态。' },
+      { key: 'order', name: '订单管理', desc: '管理样品单与线上订单，跟踪支付、发货与售后状态。' },
+      { key: 'customer', name: '客户管理', desc: '客户档案与跟进记录统一管理，支持标签分组与阶段流转。' }
+    ]},
+    { key: 'kb', name: '知识库', items: [
+      { key: 'company', name: '公司介绍', desc: '维护公司简介、资质与案例，供站点内容与 AI 词条自动引用。' },
+      { key: 'product-kb', name: '产品介绍', desc: '维护产品参数、卖点与应用场景，供详情页生成与 SEO 内容扩写。' }
+    ]}
+  ]
+};
+</script>
+<script src="/common/agent.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# 泰卦智能商家服务平台 - Python 依赖
+# 安装: pip3 install -r requirements.txt
+
+flask>=2.2,<4
+cryptography>=43,<48

@@ -1,0 +1,54 @@
+/*
+ * 中文导读：数字员工与话术的 employee-settings.module 组件，封装该界面的展示与交互。
+ */
+.settings { container: employee-settings / inline-size; min-width: 0; }
+.basicGrid { display: grid; align-items: start; gap: 24px; }
+.profile { min-width: 0; }
+.basicOptions { display: grid; min-width: 0; gap: 20px; }
+.access { min-width: 0; border-top: 1px solid var(--border); padding-top: 20px; }
+.sectionHeading { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 14px; font-weight: 600; }
+.sectionHeading svg { width: 16px; height: 16px; color: var(--primary); stroke-width: 1.7; }
+.ruleMode { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; margin-bottom: 14px; }
+.ruleMode h3 { font-size: 13px; font-weight: 500; }
+.source { display: grid; gap: 7px; margin-bottom: 14px; font-size: 12px; color: var(--muted-foreground); }
+.source p { font-size: 11px; line-height: 1.7; }
+.scope { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; margin-top: 18px; border-top: 1px solid var(--border); }
+.scope h3 { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; }
+.scope h3 svg { width: 14px; height: 14px; color: var(--muted-foreground); }
+.scope p { margin-top: 5px; color: var(--muted-foreground); font-size: 11px; line-height: 1.7; }
+.footer { display: flex; justify-content: flex-end; padding-top: 14px; margin-top: 22px; border-top: 1px solid var(--border); }
+.voiceGrid { display: grid; align-items: start; gap: 24px; }
+.voiceColumn { min-width: 0; }
+.voiceRecognition { border-top: 1px solid var(--border); padding-top: 20px; }
+.voiceFields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.voiceFields label { min-width: 0; }
+.voiceDescription { margin-top: -7px; margin-bottom: 18px; color: var(--muted-foreground); font-size: 11px; line-height: 1.7; }
+.personal { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+.personalGrid { display: grid; gap: 16px; align-items: start; }
+.personalSelection { display: flex; flex-wrap: wrap; align-items: start; gap: 12px; max-width: 440px; }
+.personalControls { display: grid; gap: 13px; }
+.personalActions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px; }
+.personalStatus { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 12px; font-size: 11px; }
+.handoffHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.handoffHeader h2 { margin-bottom: 0; }
+.handoffGrid { display: grid; align-items: start; gap: 24px; }
+.handoffPeople { min-width: 0; padding-top: 20px; border-top: 1px solid var(--border); }
+.handoffFields { display: grid; gap: 16px; }
+.handoffFields textarea { font-weight: 400; line-height: 1.9; }
+.handoffFields select { font-weight: 400; }
+.note { margin-top: 18px; font-size: 11px; line-height: 1.8; color: var(--muted-foreground); }
+@container employee-settings (min-width: 860px) {
+  .basicGrid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 24px; }
+  .basicOptions { border-left: 1px solid var(--border); padding-left: 24px; }
+  .voiceGrid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 28px; }
+  .voiceRecognition { border-top: 0; padding-top: 0; padding-left: 28px; border-left: 1px solid var(--border); }
+  .personalGrid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 28px; }
+  .handoffGrid { grid-template-columns: minmax(0,1.1fr) minmax(0,.9fr); gap: 28px; }
+  .handoffPeople { padding-top: 0; border-top: 0; padding-left: 28px; border-left: 1px solid var(--border); }
+}
+@container employee-settings (max-width: 440px) {
+  .voiceFields { grid-template-columns: minmax(0,1fr); }
+  .ruleMode { grid-template-columns: minmax(0,1fr); gap: 8px; }
+  .ruleMode select { width: 100%; }
+  .scope { align-items: flex-start; flex-wrap: wrap; }
+}

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>公告管理 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+<style>
+.ann{border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:var(--bg);transition:border-color .18s}
+.ann:hover{border-color:var(--border-strong)}
+.ann-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ann-h b{font-size:14.5px;font-weight:600}
+.ann-h .r{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.ann-h .r .btn{padding:4px 10px;font-size:12px;border-radius:7px}
+.ann-c{font-size:13px;color:var(--muted);margin-top:8px;white-space:pre-wrap;line-height:1.7}
+.ann-m{font-family:var(--mono);font-size:11.5px;color:var(--muted-2);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>公告管理</h1>
+          <p>发布平台公告，已发布的公告会展示在商家端客服中心</p>
+        </div>
+        <div class="right">
+          <button class="btn btn-primary btn-sm" onclick="openEdit()">＋ 新建公告</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs"></div>
+      <div id="list"><div class="panel"><div style="padding:20px;color:var(--muted-2);font-size:13px">加载中…</div></div></div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+let LIST = [], FILTER = '';
+const $ = id => document.getElementById(id);
+
+(async () => {
+  const me = await admInit('admin-announcements.html');
+  if (!me) return;
+  load();
+})();
+
+async function load() {
+  const j = await api('/api/admin/announcements');
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  LIST = j.data || [];
+  render();
+}
+
+function render() {
+  const counts = {
+    '': LIST.length,
+    published: LIST.filter(a => a.status === 'published').length,
+    draft: LIST.filter(a => a.status === 'draft').length,
+    offline: LIST.filter(a => a.status === 'offline').length,
+  };
+  const tabs = [['', '全部'], ['published', '已发布'], ['draft', '草稿'], ['offline', '已下线']];
+  $('tabs').innerHTML = tabs.map(([v, l]) =>
+    `<a class="${FILTER === v ? 'on' : ''}" onclick="setFilter('${v}')">${l} (${counts[v]})</a>`).join('');
+
+  const list = FILTER ? LIST.filter(a => a.status === FILTER) : LIST;
+  if (!list.length) {
+    $('list').innerHTML = '<div class="panel"><div style="padding:28px;text-align:center;color:var(--muted-2);font-size:13px">暂无公告，点击右上角新建</div></div>';
+    return;
+  }
+  $('list').innerHTML = list.map(a => `
+    <div class="ann">
+      <div class="ann-h">
+        <b>${esc(a.title)}</b>
+        ${statusBadge(a.status)}
+        ${a.level === '重要' ? '<span class="badge red">重要</span>' : '<span class="badge">普通</span>'}
+        <div class="r">
+          <button class="btn" onclick="openEdit(${a.id})">编辑</button>
+          <button class="btn" onclick="toggle(${a.id})">${a.status === 'published' ? '下线' : '发布'}</button>
+          <button class="btn btn-danger" onclick="del(${a.id})">删除</button>
+        </div>
+      </div>
+      <div class="ann-c">${esc(a.content || '（无正文）')}</div>
+      <div class="ann-m">创建 ${fmtTime(a.created_at)}${a.published_at ? ' · 发布 ' + fmtTime(a.published_at) : ''}</div>
+    </div>`).join('');
+}
+
+function setFilter(v) { FILTER = v; render(); }
+
+function openEdit(id) {
+  const a = id ? LIST.find(x => x.id === id) : null;
+  openModal(`<h3>${a ? '编辑公告' : '新建公告'}</h3>
+    <div class="field"><label>标题 <em>*</em></label><input id="n-title" value="${a ? esc(a.title) : ''}" placeholder="如：平台 V1.2 上线通知" /></div>
+    <div class="field"><label>正文</label><textarea id="n-content" style="min-height:130px" placeholder="公告内容，支持换行">${a ? esc(a.content) : ''}</textarea></div>
+    <div class="form-row">
+      <div class="field"><label>级别</label>
+        <select id="n-level">
+          <option ${a && a.level === '普通' ? 'selected' : ''}>普通</option>
+          <option ${a && a.level === '重要' ? 'selected' : ''}>重要</option>
+        </select>
+      </div>
+      <div class="field"><label>状态</label>
+        <select id="n-status">
+          <option value="draft" ${!a || a.status === 'draft' ? 'selected' : ''}>存为草稿</option>
+          <option value="published" ${a && a.status === 'published' ? 'selected' : ''}>立即发布</option>
+          <option value="offline" ${a && a.status === 'offline' ? 'selected' : ''}>已下线</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="save(${id || 'null'})">保存</button>
+    </div>`);
+}
+
+async function save(id) {
+  const title = $('n-title').value.trim();
+  if (!title) return toast('公告标题不能为空');
+  const payload = {
+    title,
+    content: $('n-content').value,
+    level: $('n-level').value,
+    status: $('n-status').value,
+  };
+  const j = id ? await api('/api/admin/announcements/' + id, 'PUT', payload)
+               : await api('/api/admin/announcements', 'POST', payload);
+  if (j.code === 0) { toast('已保存'); closeModal(); load(); }
+  else toast(j.msg || '保存失败');
+}
+
+async function toggle(id) {
+  const j = await api('/api/admin/announcements/' + id + '/toggle', 'POST');
+  if (j.code === 0) { toast(j.msg); load(); } else toast(j.msg || '操作失败');
+}
+
+async function del(id) {
+  if (!confirm('确定删除该公告？')) return;
+  const j = await api('/api/admin/announcements/' + id, 'DELETE');
+  if (j.code === 0) { toast('已删除'); load(); } else toast(j.msg || '删除失败');
+}
+</script>
+</body>
+</html>

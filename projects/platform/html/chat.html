@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>在线客服 - 泰卦智能</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="common.css" />
+<style>
+html,body{height:100%}
+body{background:var(--bg-soft);overflow:hidden}
+.chat-page{height:100vh;display:flex;flex-direction:column}
+
+/* ---------- 顶栏 ---------- */
+.chat-top{
+  height:64px;flex:0 0 64px;display:flex;align-items:center;gap:14px;
+  padding:0 22px;background:var(--bg);border-bottom:1px solid var(--border);z-index:5;
+}
+.chat-top .brand{display:flex;align-items:center;gap:12px;min-width:0}
+.chat-top .brand img{height:32px;display:block}
+.chat-top .ti{font-size:15px;font-weight:600;line-height:1.2}
+.chat-top .ts{font-size:12px;color:var(--muted-2);display:flex;align-items:center;gap:6px;margin-top:2px}
+.chat-top .spacer{flex:1}
+.chat-top .acts{display:flex;align-items:center;gap:8px}
+@media(max-width:700px){
+  .chat-top{padding:0 12px;gap:8px}
+  .chat-top .brand img{height:26px}
+  .chat-top .ti{font-size:13.5px}
+  .chat-top .ts{display:none}
+  .chat-top .acts .lbl{display:none}
+}
+
+/* ---------- 消息区 ---------- */
+.chat-body{flex:1;overflow-y:auto;padding:26px 18px 10px;scroll-behavior:smooth}
+.chat-inner{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.msg-row{display:flex;gap:10px;align-items:flex-start;animation:fadeUp .18s ease}
+.msg-row.me{flex-direction:row-reverse}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ava{
+  width:34px;height:34px;flex:0 0 34px;border-radius:10px;display:grid;place-items:center;
+  font-size:12.5px;font-weight:600;color:#fff;background:var(--accent);letter-spacing:.02em;
+}
+.ava.bot{background:#18181b}
+html[data-theme="dark"] .ava.bot{background:#3f3f46}
+.msg-col{min-width:0;max-width:76%}
+.msg-name{font-size:11.5px;color:var(--muted-2);margin-bottom:5px;font-family:var(--mono)}
+.msg-row.me .msg-name{text-align:right}
+.bub{
+  padding:11px 15px;border-radius:14px;font-size:14px;line-height:1.68;white-space:pre-wrap;
+  word-break:break-word;background:var(--bg);border:1px solid var(--border);
+  border-top-left-radius:4px;box-shadow:0 1px 2px rgba(24,24,27,.04);
+}
+.msg-row.me .bub{background:var(--accent);color:#fff;border-color:var(--accent);border-top-left-radius:14px;border-top-right-radius:4px}
+/* AI 气泡带一点AI标识色 */
+.msg-row.ai .ava{background:#1d4ed8}
+html[data-theme="dark"] .msg-row.ai .ava{background:#3b82f6}
+.msg-time{font-size:10.5px;color:var(--muted-2);margin-top:5px;font-family:var(--mono)}
+.msg-row.me .msg-time{text-align:right}
+.sys-row{text-align:center;margin:2px 0}
+.sys-row span{
+  display:inline-block;font-size:11.5px;color:var(--muted);background:var(--panel);
+  border:1px solid var(--border);border-radius:999px;padding:4px 14px;
+}
+
+/* 输入中动画 */
+.typing{display:flex;gap:4px;align-items:center;padding:14px 16px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted-2);animation:blink 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.18s}
+.typing i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+/* ---------- 底部输入 ---------- */
+.chat-foot{flex:0 0 auto;background:var(--bg);border-top:1px solid var(--border);padding:12px 18px 14px}
+.foot-inner{max-width:780px;margin:0 auto}
+.quick-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.quick-row .q{
+  font-size:12.5px;color:var(--text-2);border:1px solid var(--border-strong);border-radius:999px;
+  padding:5px 13px;background:var(--bg);cursor:pointer;transition:all .18s;white-space:nowrap;
+}
+.quick-row .q:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.composer{display:flex;gap:10px;align-items:flex-end}
+.composer textarea{
+  flex:1;min-height:46px;max-height:130px;resize:none;padding:12px 14px;border-radius:12px;
+  border:1px solid var(--border-strong);background:var(--bg);color:var(--text);
+  font-family:inherit;font-size:14px;line-height:1.55;transition:border-color .2s;
+}
+.composer textarea:focus{outline:none;border-color:var(--accent)}
+.send-btn{
+  flex:0 0 auto;height:46px;padding:0 24px;border-radius:12px;border:1px solid var(--accent);
+  background:var(--accent);color:#fff;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;
+  transition:opacity .2s;
+}
+.send-btn:hover{opacity:.88}
+.send-btn:disabled{opacity:.45;cursor:not-allowed}
+.foot-tip{font-size:11.5px;color:var(--muted-2);margin-top:8px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* 结束态 */
+.closed-box{
+  margin:0 auto 12px;max-width:780px;display:flex;gap:14px;align-items:center;
+  border:1px solid var(--border);background:var(--accent-soft);border-radius:12px;padding:12px 16px;font-size:13px;
+}
+.rate-row{display:flex;gap:6px;align-items:center}
+.rate-row b{cursor:pointer;font-size:17px;color:var(--border-strong);transition:color .15s}
+.rate-row b.on{color:#f59e0b}
+</style>
+</head>
+<body>
+<div class="chat-page">
+  <header class="chat-top">
+    <div class="brand">
+      <a href="support.html"><img src="../assets/logo.jpg" alt="泰卦智能" /></a>
+      <div>
+        <div class="ti">泰卦智能 · 在线客服</div>
+        <div class="ts"><span id="status-dot" class="dot on"></span><span id="status-text">连接中…</span></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="acts">
+      <button class="btn btn-sm" id="btn-sound" title="提示音开关">🔔<span class="lbl">提示音</span></button>
+      <button class="btn btn-sm" id="btn-human">转人工</button>
+      <button class="btn btn-sm" id="btn-close">结束会话</button>
+      <a class="btn btn-sm" href="support.html">返回客服中心</a>
+    </div>
+  </header>
+
+  <main class="chat-body" id="chat-body">
+    <div class="chat-inner" id="msg-list"></div>
+  </main>
+
+  <footer class="chat-foot">
+    <div class="foot-inner">
+      <div id="closed-box"></div>
+      <div class="quick-row" id="quick-row"></div>
+      <div class="composer">
+        <textarea id="input" placeholder="请输入您的问题，Enter 发送 / Shift+Enter 换行"></textarea>
+        <button class="send-btn" id="btn-send">发送</button>
+      </div>
+      <div class="foot-tip">
+        <span id="tip-left">AI 客服 7×24 在线 · 人工支持工作日 09:00–18:30</span>
+        <span id="tip-right">客服回复会有提示音提醒</span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+
+/* ================= 提示音（Web Audio 合成，无需音频文件） ================= */
+let AC = null;
+let SOUND_ON = localStorage.getItem('tk-cs-sound') !== 'off';
+function unlockAudio() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+  } catch (e) { AC = null; }
+}
+document.addEventListener('click', unlockAudio);
+document.addEventListener('keydown', unlockAudio, { once: true });
+
+function playBeep(kind) {
+  if (!SOUND_ON) return;
+  unlockAudio();
+  if (!AC) return;
+  // agent：双音上行（客服）；ai：单音轻提示
+  const seq = kind === 'agent'
+    ? [[880, 0, .13, .2], [1318.5, .13, .2, .18]]
+    : [[1046.5, 0, .1, .1]];
+  seq.forEach(([freq, delay, dur, vol]) => {
+    const osc = AC.createOscillator();
+    const gain = AC.createGain();
+    const t = AC.currentTime + delay;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain); gain.connect(AC.destination);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  });
+  if (kind === 'agent' && navigator.vibrate) { try { navigator.vibrate([40, 60, 40]); } catch (e) { } }
+}
+function renderSoundBtn() {
+  $('btn-sound').style.opacity = SOUND_ON ? 1 : .5;
+  $('btn-sound').title = SOUND_ON ? '点击静音' : '点击开启提示音';
+}
+$('btn-sound').onclick = () => {
+  SOUND_ON = !SOUND_ON;
+  localStorage.setItem('tk-cs-sound', SOUND_ON ? 'on' : 'off');
+  renderSoundBtn();
+  if (SOUND_ON) { unlockAudio(); playBeep('agent'); }
+  toast(SOUND_ON ? '提示音已开启' : '提示音已静音');
+};
+
+/* ================= 状态 ================= */
+let ME = null, SESS = null, MSGS = [], LAST_ID = 0;
+let WAITING = false;        // 等待 AI/客服回复（显示“正在输入”）
+let POLL_TIMER = null;
+let TITLE_TIMER = null, TITLE_BASE = document.title, UNREAD_TITLE = 0;
+const QUICK = ['点数怎么充值？', '怎么查余额？', '如何配置智能体？', '发票怎么开？', '账号一直待审核'];
+
+/* ================= 渲染 ================= */
+function esc2(s) { return esc(s); }
+function hhmm(s) { return (s || '').slice(11, 16); }
+
+function renderAll() {
+  const box = $('msg-list');
+  const rows = MSGS.map(m => {
+    if (m.sender === 'system') {
+      return `<div class="sys-row"><span>${esc(m.content)}</span></div>`;
+    }
+    const isMe = m.sender === 'user';
+    const isAi = m.sender === 'ai';
+    const who = isMe ? '我' : (isAi ? 'AI 客服' : (SESS && SESS.agent ? '客服 ' + SESS.agent.name : '人工客服'));
+    const ava = isMe ? '我' : (isAi ? 'AI' : (SESS && SESS.agent ? SESS.agent.name.slice(0, 1) : '客'));
+    const cls = isMe ? 'me' : (isAi ? 'ai' : 'agent');
+    return `<div class="msg-row ${cls}">
+      <div class="ava${isMe ? '' : ' bot'}">${esc(ava)}</div>
+      <div class="msg-col">
+        <div class="msg-name">${esc(who)}${isMe ? '' : ' · ' + hhmm(m.created_at)}</div>
+        <div class="bub">${esc(m.content)}</div>
+        ${isMe ? `<div class="msg-time">${hhmm(m.created_at)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const typing = WAITING ? `
+    <div class="msg-row ai">
+      <div class="ava bot">${SESS && SESS.status === 'human' ? '客' : 'AI'}</div>
+      <div class="msg-col">
+        <div class="msg-name">${SESS && SESS.status === 'human' ? '客服正在输入' : 'AI 客服 正在思考'}</div>
+        <div class="bub" style="padding:6px 14px"><div class="typing"><i></i><i></i><i></i></div></div>
+      </div>
+    </div>` : '';
+
+  box.innerHTML = rows + typing;
+  scrollBottom();
+}
+function scrollBottom() {
+  const b = $('chat-body');
+  b.scrollTop = b.scrollHeight;
+}
+
+function renderStatus() {
+  const dot = $('status-dot'), txt = $('status-text');
+  const s = SESS ? SESS.status : '';
+  const m = SESS ? SESS.mode : '';
+  if (s === 'closed') {
+    dot.className = 'dot off'; txt.textContent = '会话已结束';
+  } else if (s === 'human' && SESS.agent) {
+    dot.className = 'dot on'; txt.textContent = '人工客服 · ' + SESS.agent.name + ' 为您服务';
+  } else if (s === 'pending' || (s === 'human' && !SESS.agent)) {
+    dot.className = 'dot warn'; txt.textContent = '正在为您排队，等待人工接入…';
+  } else if (m === 'ai') {
+    dot.className = 'dot on'; txt.textContent = 'AI 智能客服在线';
+  } else {
+    dot.className = 'dot off'; txt.textContent = '离线留言';
+  }
+  const isHuman = s === 'human' || s === 'pending';
+  $('btn-human').disabled = isHuman;
+  $('btn-human').textContent = s === 'pending' ? '排队中…' : (s === 'human' ? '已转人工' : '转人工');
+  $('tip-right').textContent = isHuman ? '人工客服回复会立即提醒您' : '客服回复会有提示音提醒';
+}
+
+function renderClosed() {
+  const isClosed = SESS && SESS.status === 'closed';
+  $('quick-row').style.display = isClosed ? 'none' : '';
+  $('input').disabled = isClosed;
+  $('btn-send').disabled = isClosed;
+  $('btn-close').style.display = isClosed ? 'none' : '';
+  if (!isClosed) { $('closed-box').innerHTML = ''; return; }
+  $('closed-box').innerHTML = `
+    <div class="closed-box">
+      <span style="flex:1">本次会话已结束。如仍需帮助，可重新发起咨询。</span>
+      <button class="btn btn-primary btn-sm" onclick="restart()">继续咨询</button>
+    </div>`;
+}
+
+function renderQuick() {
+  const human = SESS && (SESS.status === 'human' || SESS.status === 'pending');
+  $('quick-row').style.display = human ? 'none' : '';
+  $('quick-row').innerHTML = QUICK.map(q =>
+    `<span class="q" onclick="quickSend('${q.replace(/'/g, "\\'")}')">${q}</span>`).join('');
+}
+
+/* ================= 数据 ================= */
+function mergeMessages(list) {
+  const added = [];
+  (list || []).forEach(m => {
+    if (!MSGS.some(x => x.id === m.id)) { MSGS.push(m); added.push(m); }
+  });
+  MSGS.sort((a, b) => a.id - b.id);
+  if (MSGS.length) LAST_ID = MSGS[MSGS.length - 1].id;
+  return added;
+}
+
+function notifyNew(added) {
+  if (!added.length) return;
+  const fromAgent = added.filter(m => m.sender === 'agent');
+  const fromAi = added.filter(m => m.sender === 'ai');
+  if (fromAgent.length) playBeep('agent');
+  else if (fromAi.length) playBeep('ai');
+  if (document.hidden && (fromAgent.length || fromAi.length)) flashTitle();
+}
+
+function flashTitle() {
+  UNREAD_TITLE++;
+  clearInterval(TITLE_TIMER);
+  let on = false;
+  TITLE_TIMER = setInterval(() => {
+    on = !on;
+    document.title = on ? `【${UNREAD_TITLE} 条新回复】` + TITLE_BASE : TITLE_BASE;
+  }, 800);
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    clearInterval(TITLE_TIMER);
+    document.title = TITLE_BASE;
+    UNREAD_TITLE = 0;
+  }
+});
+
+async function loadSession(autoHuman) {
+  const j = await api('/api/cs/session');
+  if (j.code !== 0) { toast(j.msg || '加载失败'); return; }
+  SESS = j.data.session;
+  MSGS = [];
+  mergeMessages(j.data.messages);
+  renderAll(); renderStatus(); renderQuick(); renderClosed();
+  if (autoHuman && SESS.status !== 'human' && SESS.status !== 'pending') doHuman(true);
+  startPoll();
+}
+
+let POLLING = false;
+function startPoll() {
+  clearTimeout(POLL_TIMER);
+  schedulePoll(0);
+}
+function schedulePoll(delay) {
+  clearTimeout(POLL_TIMER);
+  POLL_TIMER = setTimeout(poll, delay == null ? 2000 : delay);
+}
+async function poll() {
+  if (POLLING) { schedulePoll(600); return; }   // 上一轮未回，跳过，避免请求堆积
+  POLLING = true;
+  try {
+    if (!document.hidden) {
+      const j = await api('/api/cs/poll?since=' + LAST_ID);
+      if (j.code === 0) {
+        if (j.data.session) { SESS = j.data.session; }
+        const added = mergeMessages(j.data.messages);
+        if (added.length || WAITING) {
+          if (WAITING && added.length) WAITING = false;
+          renderAll(); renderStatus(); renderClosed();
+          if (added.length) renderQuick();
+          notifyNew(added);
+        } else {
+          renderStatus();
+        }
+      }
+    }
+  } catch (e) {
+    /* 网络抖动忽略，下一轮重试 */
+  } finally {
+    POLLING = false;
+    schedulePoll();
+  }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+
+/* ================= 交互 ================= */
+async function send(text) {
+  const content = (text || '').trim();
+  if (!content) return;
+  if (SESS && SESS.status === 'closed') { toast('会话已结束，请点击「继续咨询」'); return; }
+  $('input').value = '';
+  autoGrow();
+  const optimistic = { id: 'tmp' + Date.now(), sender: 'user', content, created_at: new Date().toISOString().slice(0, 19).replace('T', ' ') };
+  MSGS.push(optimistic);
+  renderAll(); scrollBottom();
+  WAITING = true; renderAll();
+  $('btn-send').disabled = true;
+
+  const j = await api('/api/cs/send', 'POST', { content });
+  $('btn-send').disabled = false;
+  if (j.code !== 0) {
+    MSGS = MSGS.filter(m => m.id !== optimistic.id);
+    WAITING = false; renderAll();
+    toast(j.msg || '发送失败');
+    return;
+  }
+  // 用服务端真实数据替换
+  SESS = j.data.session;
+  MSGS = [];
+  LAST_ID = 0;
+  mergeMessages(j.data.messages);
+  WAITING = false;
+  renderAll(); renderStatus(); renderQuick(); renderClosed();
+  if (j.data.ai_error) console.warn('[AI]', j.data.ai_error);
+}
+
+function quickSend(q) { send(q); }
+
+$('btn-send').onclick = () => send($('input').value);
+$('input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send($('input').value); }
+});
+function autoGrow() {
+  const t = $('input');
+  t.style.height = 'auto';
+  t.style.height = Math.min(130, t.scrollHeight) + 'px';
+}
+$('input').addEventListener('input', autoGrow);
+
+async function doHuman(silent) {
+  $('btn-human').disabled = true;
+  const j = await api('/api/cs/human', 'POST', {});
+  $('btn-human').disabled = false;
+  if (j.code !== 0) { toast(j.msg || '转人工失败'); return; }
+  if (!silent) toast(j.msg || '已提交转人工');
+  await poll();
+  renderStatus();
+}
+$('btn-human').onclick = () => {
+  unlockAudio();
+  doHuman(false);
+};
+
+$('btn-close').onclick = async () => {
+  if (!confirm('确定结束本次会话吗？')) return;
+  const j = await api('/api/cs/close', 'POST', {});
+  if (j.code === 0) { toast('会话已结束'); await poll(); renderStatus(); renderClosed(); }
+  else toast(j.msg || '操作失败');
+};
+
+window.restart = async () => {
+  const j = await api('/api/cs/session');
+  if (j.code !== 0) return toast('创建会话失败');
+  SESS = j.data.session; MSGS = []; LAST_ID = 0;
+  mergeMessages(j.data.messages);
+  WAITING = false;
+  renderAll(); renderStatus(); renderQuick(); renderClosed();
+  startPoll();
+};
+
+/* ================= 启动 ================= */
+(async () => {
+  renderSoundBtn();
+  applyTheme();
+  const me = await requireAuth();
+  if (!me) return;
+  ME = me;
+  const wantHuman = new URLSearchParams(location.search).get('human') === '1';
+  await loadSession(wantHuman);
+  unlockAudio();
+})();
+</script>
+</body>
+</html>

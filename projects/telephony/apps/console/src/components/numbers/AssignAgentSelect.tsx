@@ -1,0 +1,82 @@
+/*
+ * 中文导读：电话号码的 AssignAgentSelect 组件，封装该界面的展示与交互。
+ */
+"use client";
+
+import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/src/components/ui/select";
+import { useAgents } from "@/src/hooks/queries/agents";
+import { useUpdateNumber } from "@/src/hooks/queries/numbers";
+
+const UNASSIGNED = "__unassigned__";
+
+export function AssignAgentSelect({
+  phId,
+  agentId,
+  readOnly = false,
+}: {
+  phId: string;
+  agentId: string | null;
+  readOnly?: boolean;
+}) {
+  const { data: agents, isLoading: agentsLoading } = useAgents();
+  const update = useUpdateNumber();
+  const assignedAgent = agents?.find((agent) => agent.agentId === agentId);
+
+  function onChange(value: string) {
+    const next = value === UNASSIGNED ? null : value;
+    update.mutate({ phId, input: { agentId: next } });
+  }
+
+  if (readOnly) {
+    return (
+      <p
+        className="text-sm text-foreground"
+        aria-label="当前号码路由"
+      >
+        {agentsLoading
+          ? "正在加载路由…"
+          : agentId
+            ? (assignedAgent?.name ?? "已分配智能体")
+            : "未分配"}
+      </p>
+    );
+  }
+
+  return (
+    <Select
+      value={agentId ?? UNASSIGNED}
+      onValueChange={onChange}
+      disabled={agentsLoading || update.isPending}
+    >
+      <SelectTrigger
+        className="h-9 w-full min-w-0 text-sm sm:w-[200px]"
+        title={assignedAgent?.name}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+          {update.isPending ? (
+            <Loader2 className="size-3 shrink-0 animate-spin" />
+          ) : null}
+          <SelectValue
+            className="min-w-0 flex-1 truncate text-left"
+            placeholder={agentsLoading ? "正在加载智能体…" : "未分配"}
+          />
+        </div>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={UNASSIGNED}>未分配</SelectItem>
+        {(agents ?? []).map((a) => (
+          <SelectItem key={a.agentId} value={a.agentId}>
+            {a.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}

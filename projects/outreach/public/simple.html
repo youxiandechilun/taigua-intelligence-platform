@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WhatsApp 扫码登录控制台</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --line:#e6e8ee; --text:#111827; --text2:#4b5563; --muted:#6b7280;
+    --brand:#16a34a; --warn:#d97706; --err:#dc2626; --idle:#94a3b8; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px;line-height:1.6}
+  header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:14px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.2px}
+  .stat{font-size:12.5px;color:var(--muted)}
+  .stat b{color:var(--text);font-weight:600}
+  .spacer{flex:1}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--text);
+    padding:8px 14px;border-radius:10px;transition:.15s}
+  button:hover{border-color:#cbd5e1;background:#f9fafb}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  button.primary:hover{background:#15803d;border-color:#15803d}
+  button.danger{color:var(--err);border-color:#f3d4d4}
+  button.danger:hover{background:#fef2f2}
+  button.sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
+  main{padding:22px 24px 60px;max-width:1360px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(288px,1fr));gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;
+    display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card-head{display:flex;align-items:center;gap:8px}
+  .name{font-weight:600;font-size:14.5px}
+  .chip{font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+  .chip.idle{background:#f1f5f9;color:var(--idle);border-color:#e2e8f0}
+  .chip.starting{background:#eff6ff;color:#2563eb;border-color:#dbeafe}
+  .chip.qr{background:#fff7ed;color:var(--warn);border-color:#fed7aa}
+  .chip.online{background:#f0fdf4;color:var(--brand);border-color:#bbf7d0}
+  .chip.offline,.chip.error{background:#fef2f2;color:var(--err);border-color:#fecaca}
+  .qrbox{height:264px;border:1px dashed var(--line);border-radius:12px;display:flex;align-items:center;
+    justify-content:center;background:#fcfcfd;overflow:hidden;position:relative}
+  .qrbox img{width:240px;height:240px;image-rendering:pixelated;display:block}
+  .qrbox .ph{text-align:center;color:var(--muted);font-size:13px;padding:0 20px}
+  .qrbox .ph strong{display:block;color:var(--text2);font-size:13.5px;margin-bottom:4px;font-weight:600}
+  .meta{font-size:12.5px;color:var(--text2);min-height:20px;word-break:break-all}
+  .meta .k{color:var(--muted)}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+  .empty{border:1px dashed #d7dbe3;border-radius:var(--radius);padding:56px 20px;text-align:center;
+    color:var(--muted);background:#fbfbfd}
+  .empty h3{margin:0 0 6px;font-size:15px;color:var(--text);font-weight:600}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(12px);opacity:0;
+    background:#111827;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;transition:.2s;
+    pointer-events:none;z-index:50;max-width:80vw}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .tip{font-size:12.5px;color:var(--muted);max-width:860px;margin:0 auto 18px;line-height:1.75}
+</style>
+</head>
+<body>
+<header>
+  <h1>WhatsApp 扫码登录控制台</h1>
+  <span class="stat">在线 <b id="cntOn">0</b> / 共 <b id="cntAll">0</b></span>
+  <div class="spacer"></div>
+  <button class="primary" id="btnAdd">+ 新增账号</button>
+</header>
+
+<main>
+  <p class="tip">点击「新增账号」后，用手机 WhatsApp 扫码即可把该号接入本机（会话保存在本机目录）。扫码成功后状态变为「在线」，断线会标红，重新扫码即可恢复。</p>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">
+    <h3>还没有接入任何账号</h3>
+    <div>点击右上角「新增账号」，会生成一个二维码，用手机扫码登录</div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const grid = $('#grid');
+let sessions = [];
+let es = null;
+
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 2200);
+}
+
+const CHIP = {idle:'未启动', starting:'启动中', qr:'待扫码', authenticated:'已认证', online:'在线', offline:'已断线', error:'异常', stopped:'已停止'};
+
+function render(){
+  const on = sessions.filter(s=>s.status==='online').length;
+  $('#cntOn').textContent = on;
+  $('#cntAll').textContent = sessions.length;
+  $('#empty').style.display = sessions.length ? 'none' : 'block';
+  grid.innerHTML = '';
+
+  sessions.forEach(s=>{
+    const st = s.status || 'idle';
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const qrInner = s.qr
+      ? `<img src="${s.qr}" alt="二维码" />`
+      : `<div class="ph"><strong>${st==='online'?'已在线':st==='starting'?'正在拉起浏览器…':st==='error'?'发生异常':'等待生成二维码'}</strong>${st==='online'?(s.me?'账号：'+s.me.id:''):'点击下方「启动」开始'}</div>`;
+
+    card.innerHTML = `
+      <div class="card-head">
+        <span class="name">${esc(s.label)}</span>
+        <span class="chip ${st}">${CHIP[st]||st}</span>
+      </div>
+      <div class="qrbox">${qrInner}</div>
+      <div class="meta">
+        ${s.me ? `<div><span class="k">号码：</span>${esc(s.me.id)}${s.me.name?' · '+esc(s.me.name):''}</div>` : ''}
+        ${s.error ? `<div style="color:#dc2626">${esc(s.error)}</div>` : ''}
+        ${s.status==='qr' ? `<div><span class="k">提示：</span>二维码约 20 秒刷新一次，请在手机端 WhatsApp「已连接的设备」中扫码</div>` : ''}
+      </div>
+      <div class="acts">
+        ${['idle','stopped','offline','error','stopped'].includes(st) ? `<button class="sm primary" data-act="start" data-id="${s.id}">启动</button>` : ''}
+        ${['qr','starting'].includes(st) ? `<button class="sm" data-act="restart" data-id="${s.id}">重新生成</button>` : ''}
+        ${st==='online' ? `<button class="sm" data-act="stop" data-id="${s.id}">停止</button>` : ''}
+        <button class="sm danger" data-act="del" data-id="${s.id}">删除</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function api(url, opt){
+  const r = await fetch(url, Object.assign({headers:{'Content-Type':'application/json'}}, opt||{}));
+  const j = await r.json().catch(()=>({ok:false,error:'返回解析失败'}));
+  if(!r.ok || j.ok===false) throw new Error(j.error || ('HTTP '+r.status));
+  return j;
+}
+
+async function load(){
+  try{
+    const j = await api('/api/sessions');
+    sessions = j.sessions || [];
+    render();
+  }catch(e){ toast('加载失败：'+e.message); }
+}
+
+function connectSSE(){
+  if (es) es.close();
+  es = new EventSource('/api/events');
+  es.onmessage = (ev)=>{
+    try{
+      const d = JSON.parse(ev.data);
+      if (d.sessions){ sessions = d.sessions; render(); }
+    }catch{}
+  };
+  es.onerror = ()=>{ /* 浏览器会自动重连 */ };
+}
+
+$('#btnAdd').onclick = async ()=>{
+  const label = prompt('给这个账号起个名字（例如：业务号 A）', '账号 ' + (sessions.length+1));
+  if (label === null) return;
+  try{
+    await api('/api/sessions', {method:'POST', body: JSON.stringify({label})});
+    toast('已创建，正在生成二维码…');
+    setTimeout(load, 600);
+  }catch(e){ toast('创建失败：'+e.message); }
+};
+
+grid.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const {act, id} = btn.dataset;
+  btn.disabled = true;
+  try{
+    if (act === 'start' || act === 'restart'){
+      if (act === 'restart') await api('/api/sessions/'+id+'/stop', {method:'POST'});
+      await api('/api/sessions/'+id+'/start', {method:'POST'});
+      toast('正在启动，二维码稍后出现');
+    } else if (act === 'stop'){
+      await api('/api/sessions/'+id+'/stop', {method:'POST'});
+      toast('已停止');
+    } else if (act === 'del'){
+      if (!confirm('删除后该账号的登录状态会被清除，需要重新扫码。确认删除？')) { btn.disabled=false; return; }
+      await api('/api/sessions/'+id, {method:'DELETE'});
+      toast('已删除');
+    }
+    load();
+  }catch(err){ toast('操作失败：'+err.message); btn.disabled = false; }
+});
+
+load();
+connectSSE();
+setInterval(()=>{ if(!es || es.readyState === 2) load(); }, 8000);
+</script>
+</body>
+</html>

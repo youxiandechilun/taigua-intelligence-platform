@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>私信拓客智能体（国内版） - 泰卦智能</title>
+<link rel="icon" href="/image/favicon.svg" type="image/svg+xml" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/common/agent.css" />
+</head>
+<body>
+<div class="console">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <a href="#"><img src="/image/logo.jpg" alt="泰卦智能" /></a>
+      <div class="bt"><b>私信拓客</b>DM Outreach</div>
+    </div>
+    <div class="env-band dom" title="当前页面所属区域版本"><i></i>国内版<span>中国大陆 · CN</span></div>
+    <div class="side-scroll" id="side-nav"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb" id="crumb"></div>
+      <div class="right">
+        <span class="tag-env" id="env-tag"></span>
+        <button class="icon-btn" id="theme-btn" title="切换深色 / 浅色"></button>
+      </div>
+    </div>
+    <div class="main-inner" id="view"></div>
+  </div>
+</div>
+
+<script>
+window.AGENT_PAGE = {
+  slug: 'dm-cn',
+  name: '私信拓客（国内）',
+  title: '私信拓客智能体（国内版）',
+  env: 'dom',
+  envName: '国内版',
+  market: '中国大陆',
+  envText: '国内版',
+  kpis: ['今日找线索', '已加微信', '开发信送达', '留资数'],
+  tableCols: ['线索', '来源', '进展', '更新时间'],
+  modules: [
+    { key: 'dashboard', name: '数据看板', flat: true, items: [
+      { key: 'letter-task', name: '开发信任务', desc: '开发信任务的下发量、送达率、回复率与转化漏斗，支持按话术版本与账号维度对比。' },
+      { key: 'lead-list', name: '留资列表', desc: '汇总各渠道留资明细，展示来源、意向标签、跟进人与当前处理状态。' }
+    ]},
+    { key: 'account', name: '账号管理', items: [
+      { key: 'wechat', name: '微信', desc: '绑定与管理用于私信触达的微信账号，查看在线状态、今日发送量与风控提示。' }
+    ]},
+    { key: 'task', name: '任务中心', items: [
+      { key: 'find-lead', name: '找线索', desc: '按行业、地区与关键词在公域平台采集目标客户，自动去重并入库待触达。' },
+      { key: 'add-wechat', name: '加微信', desc: '按节奏向线索发起好友申请，自动记录通过率并回写线索状态。' },
+      { key: 'send-letter', name: '发开发信', desc: '基于话术模板批量发送开发信，支持变量替换、分批下发与回复自动识别。' }
+    ]},
+    { key: 'lead', name: '留资中心', items: [
+      { key: 'push', name: '留资推送', desc: '把新留资按规则推送到企业微信、CRM 或指定接收人，支持去重与优先级标记。' },
+      { key: 'customers', name: '客户管理', desc: '客户档案与跟进记录统一管理，支持标签分组、阶段流转与批量分配。' }
+    ]},
+    { key: 'kb', name: '知识库', items: [
+      { key: 'company', name: '公司介绍', desc: '维护公司简介、资质与案例素材，作为开发信与话术的引用来源。' },
+      { key: 'product', name: '产品介绍', desc: '维护产品参数、卖点与报价口径，供智能体自动生成个性化内容。' }
+    ]}
+  ]
+};
+</script>
+<script src="/common/agent.js"></script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 客服与知识库 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+<style>
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.preset-row button{
+  border:1px solid var(--border-strong);background:var(--bg);border-radius:9px;
+  padding:7px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--text-2);transition:all .18s;
+}
+.preset-row button:hover{border-color:var(--accent);color:var(--accent)}
+.preset-row button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.cfg-grid{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+@media(max-width:1100px){.cfg-grid{grid-template-columns:1fr}}
+.cfg-card{border:1px solid var(--border);border-radius:14px;background:var(--bg);padding:20px}
+.cfg-card h3{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.cfg-card .field{margin-bottom:14px}
+.tip-box{border:1px dashed var(--border-strong);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--muted);line-height:1.9}
+.tip-box b{color:var(--text-2)}
+.key-state{font-family:var(--mono);font-size:12px;color:var(--ok)}
+.key-state.off{color:var(--accent)}
+
+.kb-row{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:var(--bg);transition:border-color .18s}
+.kb-row:hover{border-color:var(--border-strong)}
+.kb-row .h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.kb-row .h b{font-size:13.5px;font-weight:600;flex:1;min-width:0}
+.kb-row .h .r{display:flex;gap:6px}
+.kb-row .a{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.75;white-space:pre-wrap}
+.kb-row .kw{font-family:var(--mono);font-size:11px;color:var(--muted-2);margin-top:8px}
+.kb-toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.kb-toolbar input{flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--border-strong);border-radius:9px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit}
+.kb-toolbar select{padding:8px 12px;border:1px solid var(--border-strong);border-radius:9px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit}
+</style>
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>AI 客服与知识库</h1>
+          <p>接入 DeepSeek / OpenAI 等大模型，用知识库驱动在线客服自动应答</p>
+        </div>
+        <div class="right">
+          <a class="btn btn-sm" href="/html/agent-console.html" target="_blank">打开客服工作台 ↗</a>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <a class="on" onclick="setTab('model')">模型接入</a>
+        <a onclick="setTab('kb')">知识库</a>
+      </div>
+
+      <!-- ============ Tab 1：模型接入 ============ -->
+      <div id="view-model">
+        <div class="cfg-grid">
+          <div>
+            <div class="cfg-card" style="margin-bottom:18px">
+              <h3>模型 API 配置</h3>
+              <div class="field">
+                <label>快捷预设</label>
+                <div class="preset-row" id="presets"></div>
+                <div class="hint">选择后会填入对应的 API 地址与默认模型，仍可手动修改（任何 OpenAI 兼容接口都支持）</div>
+              </div>
+              <div class="field">
+                <label>API 地址（Base URL）</label>
+                <input id="ai_base_url" placeholder="https://api.deepseek.com/v1" />
+                <div class="hint">只填到 /v1 这一层，系统会自动拼接 /chat/completions</div>
+              </div>
+              <div class="field">
+                <label>API 密钥</label>
+                <input id="ai_api_key" type="password" placeholder="sk-..." autocomplete="off" />
+                <div class="hint" id="key-hint">未配置</div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label>模型名称</label>
+                  <input id="ai_model" placeholder="deepseek-chat" />
+                </div>
+                <div class="field">
+                  <label>温度 temperature</label>
+                  <input id="ai_temperature" type="number" step="0.1" min="0" max="2" placeholder="0.3" />
+                </div>
+              </div>
+              <div class="field">
+                <label>系统提示词（人设）</label>
+                <textarea id="ai_system_prompt" style="min-height:130px"></textarea>
+                <div class="hint">决定 AI 的语气与边界，知识库内容会自动拼接在后面</div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px">
+                <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+                <button class="btn" id="btn-test" onclick="testModel()">测试连接</button>
+                <button class="btn" onclick="clearKey()">清除密钥</button>
+                <span class="key-state" id="test-result"></span>
+              </div>
+            </div>
+
+            <div class="cfg-card">
+              <h3>应答行为</h3>
+              <div class="form-row">
+                <div class="field">
+                  <label style="display:flex;align-items:center;justify-content:space-between">
+                    <span>启用 AI 自动应答</span>
+                    <span class="switch"><input type="checkbox" id="ai_enabled" /><i></i></span>
+                  </label>
+                  <div class="hint">关闭后仅用知识库作答</div>
+                </div>
+                <div class="field">
+                  <label style="display:flex;align-items:center;justify-content:space-between">
+                    <span>启用知识库检索</span>
+                    <span class="switch"><input type="checkbox" id="kb_enabled" /><i></i></span>
+                  </label>
+                  <div class="hint">每次提问检索最相关的条目注入上下文</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label>知识库召回条数</label>
+                  <input id="kb_topk" type="number" min="1" max="10" placeholder="3" />
+                </div>
+                <div class="field">
+                  <label>人工服务时间文案</label>
+                  <input id="cs_service_hint" value="工作日 09:00–18:30" disabled />
+                  <div class="hint">在「系统设置 → 服务时间」中维护</div>
+                </div>
+              </div>
+              <div class="field">
+                <label>会话欢迎语</label>
+                <textarea id="cs_welcome" style="min-height:70px"></textarea>
+              </div>
+              <div class="field">
+                <label>兜底话术（无答案且未接模型时）</label>
+                <textarea id="cs_offline" style="min-height:70px"></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="cfg-card" style="margin-bottom:18px">
+              <h3>当前状态</h3>
+              <div class="list-row"><span>模型接入</span><b id="st-model">—</b></div>
+              <div class="list-row"><span>AI 应答</span><b id="st-ai">—</b></div>
+              <div class="list-row"><span>知识库</span><b id="st-kb">—</b></div>
+              <div class="list-row"><span>召回条数</span><b id="st-topk">—</b></div>
+            </div>
+            <div class="cfg-card">
+              <h3>接入说明</h3>
+              <div class="tip-box">
+                <b>1. 拿密钥</b><br/>
+                DeepSeek：platform.deepseek.com → API keys<br/>
+                OpenAI：platform.openai.com → API keys<br/>
+                通义千问：阿里云百炼控制台 → API-KEY<br/><br/>
+                <b>2. 填地址</b><br/>
+                DeepSeek <code>https://api.deepseek.com/v1</code><br/>
+                OpenAI <code>https://api.openai.com/v1</code><br/>
+                通义 <code>https://dashscope.aliyuncs.com/compatible-mode/v1</code><br/><br/>
+                <b>3. 测试</b><br/>
+                点「测试连接」，返回「正常」即接通。密钥仅存本机数据库，界面上只显示后 4 位。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ Tab 2：知识库 ============ -->
+      <div id="view-kb" style="display:none">
+        <div class="kpi-grid" style="margin-bottom:16px">
+          <div class="kpi"><small>条目总数</small><b id="k-total">0</b></div>
+          <div class="kpi"><small>已启用</small><b id="k-active">0</b></div>
+          <div class="kpi"><small>分类数</small><b id="k-cats">0</b></div>
+          <div class="kpi"><small>累计命中</small><b id="k-hits">0</b></div>
+        </div>
+
+        <div class="kb-toolbar">
+          <input id="kb-search" placeholder="搜索问题 / 答案 / 关键词…" oninput="renderKb()" />
+          <select id="kb-cat" onchange="renderKb()"></select>
+          <button class="btn btn-sm" onclick="loadKb()">刷新</button>
+          <button class="btn btn-primary btn-sm" onclick="editKb()">＋ 新增条目</button>
+        </div>
+
+        <div id="kb-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let CFG = {}, KB = [], TAB = 'model';
+
+const PRESETS = {
+  deepseek: { name: 'DeepSeek', base: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  openai: { name: 'OpenAI', base: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  qwen: { name: '通义千问', base: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
+  moonshot: { name: 'Moonshot', base: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-8k' },
+  glm: { name: '智谱 GLM', base: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4-flash' },
+};
+
+(async () => {
+  const me = await admInit('admin-kb.html');
+  if (!me) return;
+  renderPresets();
+  await loadConfig();
+  await loadKb();
+})();
+
+function setTab(t) {
+  TAB = t;
+  document.querySelectorAll('#tabs a').forEach(a => a.classList.remove('on'));
+  document.querySelectorAll('#tabs a')[t === 'model' ? 0 : 1].classList.add('on');
+  $('view-model').style.display = t === 'model' ? '' : 'none';
+  $('view-kb').style.display = t === 'kb' ? '' : 'none';
+}
+
+/* ---------------- 模型配置 ---------------- */
+async function loadConfig() {
+  const j = await api('/api/admin/ai-config');
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  CFG = j.data;
+  $('ai_base_url').value = CFG.ai_base_url || '';
+  $('ai_model').value = CFG.ai_model || '';
+  $('ai_temperature').value = CFG.ai_temperature || '0.3';
+  $('ai_system_prompt').value = CFG.ai_system_prompt || '';
+  $('kb_topk').value = CFG.kb_topk || '3';
+  $('cs_welcome').value = CFG.cs_welcome || '';
+  $('cs_offline').value = CFG.cs_offline || '';
+  $('ai_enabled').checked = CFG.ai_enabled === '1';
+  $('kb_enabled').checked = CFG.kb_enabled === '1';
+
+  const set = !!CFG.api_key_set;
+  $('ai_api_key').value = '';
+  $('ai_api_key').placeholder = set ? CFG.api_key_mask + '（留空则不修改）' : 'sk-...（尚未配置）';
+  $('key-hint').innerHTML = set
+    ? `已配置：<span class="mono">${esc(CFG.api_key_mask)}</span>　留空保存则保持不变`
+    : '<span style="color:var(--accent)">尚未配置密钥，AI 将无法调用，仅使用知识库答案</span>';
+
+  const ready = set && (CFG.ai_base_url || '').startsWith('http');
+  $('st-model').innerHTML = ready
+    ? `<span style="color:var(--ok)">${esc(CFG.ai_model || '')}</span>`
+    : '<span style="color:var(--accent)">未接入</span>';
+  $('st-ai').innerHTML = CFG.ai_enabled === '1'
+    ? '<span style="color:var(--ok)">已启用</span>' : '<span style="color:var(--muted)">已关闭</span>';
+  $('st-kb').innerHTML = CFG.kb_enabled === '1'
+    ? '<span style="color:var(--ok)">已启用</span>' : '<span style="color:var(--muted)">已关闭</span>';
+  $('st-topk').textContent = (CFG.kb_topk || '3') + ' 条';
+
+  document.querySelectorAll('#presets button').forEach(b => {
+    b.classList.toggle('on', b.dataset.base === CFG.ai_base_url);
+  });
+}
+
+function renderPresets() {
+  $('presets').innerHTML = Object.keys(PRESETS).map(k =>
+    `<button data-base="${PRESETS[k].base}" onclick="applyPreset('${k}')">${PRESETS[k].name}</button>`).join('');
+}
+function applyPreset(k) {
+  const p = PRESETS[k];
+  $('ai_base_url').value = p.base;
+  $('ai_model').value = p.model;
+  document.querySelectorAll('#presets button').forEach(b => b.classList.toggle('on', b.dataset.base === p.base));
+  toast('已填入 ' + p.name + ' 默认配置，请填写密钥后保存');
+}
+
+async function saveConfig() {
+  const body = {
+    ai_enabled: $('ai_enabled').checked ? '1' : '0',
+    kb_enabled: $('kb_enabled').checked ? '1' : '0',
+    ai_base_url: $('ai_base_url').value.trim(),
+    ai_model: $('ai_model').value.trim(),
+    ai_temperature: $('ai_temperature').value.trim() || '0.3',
+    ai_system_prompt: $('ai_system_prompt').value,
+    kb_topk: $('kb_topk').value.trim() || '3',
+    cs_welcome: $('cs_welcome').value,
+    cs_offline: $('cs_offline').value,
+  };
+  const key = $('ai_api_key').value.trim();
+  if (key) body.ai_api_key = key;
+  if (body.ai_base_url && !/^https?:\/\//.test(body.ai_base_url)) return toast('API 地址需以 http:// 或 https:// 开头');
+
+  const j = await api('/api/admin/ai-config', 'PUT', body);
+  if (j.code === 0) { toast('配置已保存'); await loadConfig(); }
+  else toast(j.msg || '保存失败');
+}
+
+async function clearKey() {
+  if (!confirm('确定清除已保存的 API 密钥？清除后 AI 客服将无法调用模型。')) return;
+  const j = await api('/api/admin/ai-config', 'PUT', { clear_api_key: true });
+  if (j.code === 0) { toast('密钥已清除'); loadConfig(); } else toast(j.msg || '操作失败');
+}
+
+async function testModel() {
+  const btn = $('btn-test'), out = $('test-result');
+  const base = $('ai_base_url').value.trim();
+  const model = $('ai_model').value.trim();
+  const key = $('ai_api_key').value.trim();
+  if (!base) return toast('请先填写 API 地址');
+  if (!model) return toast('请先填写模型名称');
+  btn.disabled = true; btn.textContent = '测试中…'; out.textContent = '';
+  const body = { ai_base_url: base, ai_model: model };
+  if (key) body.ai_api_key = key;
+  const j = await api('/api/admin/ai-test', 'POST', body);
+  btn.disabled = false; btn.textContent = '测试连接';
+  if (j.code === 0) {
+    out.style.color = 'var(--ok)';
+    out.textContent = '连接成功：' + (j.data.reply || '正常');
+    toast('模型连接正常');
+  } else {
+    out.style.color = 'var(--accent)';
+    out.textContent = j.msg || '连接失败';
+    toast(j.msg || '连接失败');
+  }
+}
+
+/* ---------------- 知识库 ---------------- */
+async function loadKb() {
+  const j = await api('/api/admin/kb');
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  KB = j.data.list || [];
+  const cats = j.data.categories || [];
+  $('kb-cat').innerHTML = '<option value="">全部分类</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
+  $('k-total').textContent = j.data.stats.total;
+  $('k-active').textContent = j.data.stats.active;
+  $('k-cats').textContent = cats.length;
+  $('k-hits').textContent = KB.reduce((s, x) => s + (x.hits || 0), 0);
+  renderKb();
+}
+
+function renderKb() {
+  const kw = ($('kb-search').value || '').trim().toLowerCase();
+  const cat = $('kb-cat').value;
+  let list = KB;
+  if (cat) list = list.filter(x => x.category === cat);
+  if (kw) list = list.filter(x =>
+    (x.question || '').toLowerCase().includes(kw) ||
+    (x.answer || '').toLowerCase().includes(kw) ||
+    (x.keywords || '').toLowerCase().includes(kw));
+
+  if (!list.length) {
+    $('kb-list').innerHTML = '<div class="panel"><div style="padding:30px;text-align:center;color:var(--muted-2);font-size:13px">没有匹配的条目</div></div>';
+    return;
+  }
+  $('kb-list').innerHTML = list.map(x => `
+    <div class="kb-row">
+      <div class="h">
+        <b>${esc(x.question)}</b>
+        <span class="badge">${esc(x.category || '通用')}</span>
+        <span class="badge ${x.status ? 'green' : ''}">${x.status ? '启用' : '停用'}</span>
+        <span class="badge">命中 ${x.hits || 0}</span>
+        <div class="r">
+          <button class="btn btn-sm" onclick="toggleKb(${x.id})">${x.status ? '停用' : '启用'}</button>
+          <button class="btn btn-sm" onclick="editKb(${x.id})">编辑</button>
+          <button class="btn btn-sm btn-danger" onclick="delKb(${x.id})">删除</button>
+        </div>
+      </div>
+      <div class="a">${esc(x.answer)}</div>
+      ${x.keywords ? `<div class="kw">关键词：${esc(x.keywords)}</div>` : ''}
+    </div>`).join('');
+}
+
+function editKb(id) {
+  const x = id ? KB.find(k => k.id === id) : null;
+  const cats = [...new Set(KB.map(k => k.category).filter(Boolean))];
+  openModal(`
+    <h3>${x ? '编辑知识库条目' : '新增知识库条目'}</h3>
+    <div class="form-row">
+      <div class="field"><label>分类</label>
+        <input id="k-cat-in" list="cat-list" value="${x ? esc(x.category || '') : '通用'}" placeholder="如 充值 / 智能体 / 账号" />
+        <datalist id="cat-list">${cats.map(c => `<option>${esc(c)}</option>`).join('')}</datalist>
+      </div>
+      <div class="field"><label>关键词</label>
+        <input id="k-kw" value="${x ? esc(x.keywords || '') : ''}" placeholder="充值,点数,买点数（英文逗号分隔）" />
+      </div>
+    </div>
+    <div class="field"><label>标准问题 <em>*</em></label>
+      <input id="k-q" value="${x ? esc(x.question) : ''}" placeholder="用户会怎么问？例如：TOKEN 点数怎么充值？" />
+    </div>
+    <div class="field"><label>标准答案 <em>*</em></label>
+      <textarea id="k-a" style="min-height:130px" placeholder="给用户的标准回复内容">${x ? esc(x.answer) : ''}</textarea>
+    </div>
+    <div class="hint">关键词用于精确匹配加权；问题/答案会参与相似度召回。答案会作为参考资料交给 AI 组织语言。</div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveKb(${x ? x.id : 'null'})">保存</button>
+    </div>`, true);
+}
+
+async function saveKb(id) {
+  const body = {
+    category: $('k-cat-in').value.trim() || '通用',
+    question: $('k-q').value.trim(),
+    answer: $('k-a').value.trim(),
+    keywords: $('k-kw').value.trim(),
+  };
+  if (!body.question || !body.answer) return toast('问题与答案都不能为空');
+  const j = id
+    ? await api('/api/admin/kb/' + id, 'PUT', body)
+    : await api('/api/admin/kb', 'POST', body);
+  if (j.code === 0) { closeModal(); toast('已保存'); loadKb(); }
+  else toast(j.msg || '保存失败');
+}
+
+async function toggleKb(id) {
+  const x = KB.find(k => k.id === id);
+  const j = await api('/api/admin/kb/' + id, 'PUT', { status: x.status ? 0 : 1 });
+  if (j.code === 0) { toast('已更新'); loadKb(); } else toast(j.msg || '操作失败');
+}
+
+async function delKb(id) {
+  const x = KB.find(k => k.id === id);
+  if (!confirm(`删除知识库条目「${x ? x.question : id}」？`)) return;
+  const j = await api('/api/admin/kb/' + id, 'DELETE');
+  if (j.code === 0) { toast('已删除'); loadKb(); } else toast(j.msg || '删除失败');
+}
+</script>
+</body>
+</html>

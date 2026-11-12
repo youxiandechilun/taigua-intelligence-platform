@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>支付配置 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+<style>
+.pay-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pay-head b{font-size:14px}
+.pay-head .grow{flex:1;min-width:20px}
+.pay-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;margin-top:16px}
+.pay-grid .full{grid-column:1/-1}
+.pay-grid .field{margin:0}
+.pay-grid .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+.pay-grid .hint b{color:var(--accent);font-weight:600}
+.input-group{display:flex;gap:6px}
+.input-group input{flex:1;min-width:0}
+.input-group .btn{flex:0 0 auto;padding:0 10px;height:38px;font-size:12.5px}
+.notice{display:flex;gap:12px;padding:14px 16px;border-radius:12px;background:var(--bg-soft);border:1px solid var(--border);margin-bottom:16px}
+.notice .ic{flex:0 0 auto;color:var(--accent)}
+.notice ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--muted);line-height:1.85}
+.notice li b{color:var(--text);font-weight:600}
+.off-line{opacity:.62}
+</style>
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>支付配置</h1>
+          <p>填写微信支付 / 支付宝对接参数，可单独启用或禁用；保存后立即生效</p>
+        </div>
+        <div class="right">
+          <button class="btn btn-sm" onclick="load()">刷新</button>
+          <button class="btn btn-primary btn-sm" onclick="save()">保存配置</button>
+        </div>
+      </div>
+
+      <div class="notice">
+        <div class="ic">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <ul>
+          <li><b>密钥只写不读</b>：APIv3 密钥、应用私钥保存后仅显示掩码（如 <code>190****88</code>），任何人无法回显明文；输入框留空表示<b>不修改</b>。</li>
+          <li><b>环境变量优先</b>：服务器设置了 <code>TK_PAY_WECHAT_APIV3_KEY</code> 这类同名变量时以环境变量为准，生产环境建议把密钥放 <code>.env</code> 而不是数据库。</li>
+          <li><b>回调地址</b>必须公网可访问的 <b>HTTPS</b> 域名，微信 / 支付宝会主动回连校验，本机 localhost 无法收单。</li>
+          <li><b>禁用渠道</b>后：商家端充值页自动隐藏该支付方式，下单接口直接拒绝，不影响卡密兑换与点数支付。</li>
+        </ul>
+      </div>
+
+      <div id="ch-root"><div class="panel"><div class="empty">加载中…</div></div></div>
+
+    </div>
+  </div>
+</div>
+<script src="common-admin.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let STATE = {};
+let STATE_ORIG = {};
+
+(async function () {
+  const me = await admInit('admin-pay.html');
+  if (!me) return;
+  await load();
+})();
+
+async function load() {
+  const j = await api('/api/admin/pay-settings');
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  STATE = j.data || {};
+  render();
+}
+
+function badge(st) {
+  if (!st.enabled) return '<span class="badge">已禁用</span>';
+  if (st.ready) return '<span class="badge green">已启用 · 配置完整</span>';
+  return `<span class="badge red">已启用 · 缺 ${st.missing.length} 项配置</span>`;
+}
+
+function fieldHtml(st, f) {
+  const id = 'pf-' + f.key;
+  if (f.secret) {
+    const ph = f.configured
+      ? `已配置 ${f.masked}，留空表示不修改`
+      : (f.placeholder || '');
+    return `
+      <div class="field">
+        <label>${esc(f.label)}${f.required ? ' <em>*</em>' : ''}</label>
+        <div class="input-group">
+          <input id="${id}" data-pay-field="${f.key}" data-secret="1" type="password"
+            placeholder="${esc(ph)}" autocomplete="new-password" />
+          <button type="button" class="btn" onclick="toggleEye(this)">显示</button>
+          ${f.configured ? `<button type="button" class="btn" onclick="markClear(this)">清除</button>` : ''}
+        </div>
+        <div class="hint">${f.configured ? '已配置 <b>' + esc(f.masked) + '</b>，留空不修改' : '尚未配置'}</div>
+      </div>`;
+  }
+  return `
+    <div class="field">
+      <label>${esc(f.label)}${f.required ? ' <em>*</em>' : ''}</label>
+      <input id="${id}" data-pay-field="${f.key}" value="${esc(f.value || '')}"
+        placeholder="${esc(f.placeholder || '')}" />
+      ${f.from_env ? '<div class="hint">当前由环境变量 <b>' + esc('TK_' + f.key.toUpperCase()) + '</b> 覆盖</div>' : ''}
+    </div>`;
+}
+
+function render() {
+  STATE_ORIG = {};
+  Object.values(STATE).forEach(st => {
+    (st.fields || []).forEach(f => { STATE_ORIG[f.key] = f.value || ''; });
+  });
+  const order = ['wechat', 'alipay'];
+  const meta = {
+    wechat: { desc: 'PC 端推荐 Native 扫码（微信「网站应用」APPID）；证书文件需上传到服务器后填写绝对路径。' },
+    alipay: { desc: '开放平台创建企业应用并签约「当面付」或「电脑网站支付」；私钥留存在本服务器，切勿外传。' },
+  };
+  $('ch-root').innerHTML = order.map(ch => {
+    const st = STATE[ch];
+    if (!st) return '';
+    const longFields = st.fields.filter(f => f.secret || f.key.endsWith('notify_url'));
+    return `
+      <div class="panel ${st.enabled ? '' : 'off-line'}" style="margin-bottom:16px">
+        <div class="pay-head">
+          <b>${esc(st.name)}</b>
+          ${badge(st)}
+          <span class="grow"></span>
+          <span class="small muted">${st.enabled ? '启用中' : '已关闭'}</span>
+          <label class="switch">
+            <input type="checkbox" data-enable="${ch}" ${st.enabled ? 'checked' : ''} onchange="onToggle('${ch}', this.checked)" />
+            <i></i>
+          </label>
+        </div>
+        <div class="small muted" style="margin-top:6px">${esc(meta[ch].desc)}</div>
+        <div class="pay-grid">
+          ${st.fields.map(f => fieldHtml(st, f)).join('')}
+        </div>
+        ${st.missing.length && st.enabled ? `
+          <div class="small" style="margin-top:14px;color:var(--accent)">
+            还缺：${st.missing.map(m => esc(m.label)).join('、')}，补全并保存后该渠道才可用
+          </div>` : ''}
+        <div class="small muted" style="margin-top:14px">
+          实际回调地址：<code>${esc(st.notify_url)}</code>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function onToggle(ch, on) {
+  const st = STATE[ch];
+  if (on && !st.ready) {
+    toast('该渠道还缺 ' + st.missing.length + ' 项配置，可以先保存，补全后才能支付');
+  }
+}
+
+function toggleEye(btn) {
+  const inp = btn.parentNode.querySelector('input');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '隐藏'; }
+  else { inp.type = 'password'; btn.textContent = '显示'; }
+}
+
+function markClear(btn) {
+  const inp = btn.parentNode.querySelector('input');
+  inp.value = '__CLEAR__';
+  inp.type = 'text';
+  inp.placeholder = '保存后将清空该配置';
+  btn.disabled = true;
+  btn.textContent = '待清除';
+  toast('已标记清除，点「保存配置」后生效');
+}
+
+async function save() {
+  const values = {}, enabled = {};
+  document.querySelectorAll('[data-enable]').forEach(i => { enabled[i.dataset.enable] = i.checked; });
+  document.querySelectorAll('[data-pay-field]').forEach(i => {
+    const k = i.dataset.payField;
+    const v = i.value.trim();
+    if (v === '__CLEAR__') { values[k] = '__CLEAR__'; return; }
+    if (i.dataset.secret === '1') {
+      if (v) values[k] = v;             // 密钥留空 = 不修改
+      return;
+    }
+    if (v) { values[k] = v; return; }
+    // 普通字段被清空：原值存在则显式清除
+    const orig = (STATE_ORIG[k] || '');
+    if (orig) values[k] = '__CLEAR__';
+  });
+  const j = await api('/api/admin/pay-settings', 'PUT', { values, enabled });
+  if (j.code !== 0) return toast(j.msg || '保存失败');
+  STATE = j.data || STATE;
+  render();
+  toast(j.msg || '已保存');
+}
+</script>
+</body>
+</html>

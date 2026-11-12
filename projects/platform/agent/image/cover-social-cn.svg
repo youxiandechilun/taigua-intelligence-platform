@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" role="img" aria-label="国内社媒矩阵智能体">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbfbfc"/><stop offset="1" stop-color="#eeeef0"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0v40" fill="none" stroke="#e6e6e9" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <rect width="640" height="360" fill="url(#grid)"/>
+  <g stroke="#d4d4d8" stroke-width="1.4">
+    <path d="M300 180 190 108M300 180 190 252M300 180 300 72M300 180 300 288M300 180 410 108M300 180 410 252"/>
+  </g>
+  <g fill="#ffffff" stroke="#d4d4d8" stroke-width="1.4">
+    <circle cx="190" cy="108" r="19"/><circle cx="190" cy="252" r="19"/>
+    <circle cx="300" cy="72" r="19"/><circle cx="300" cy="288" r="19"/>
+    <circle cx="410" cy="108" r="19"/><circle cx="410" cy="252" r="19"/>
+  </g>
+  <g fill="#a1a1aa">
+    <circle cx="190" cy="108" r="4"/><circle cx="190" cy="252" r="4"/>
+    <circle cx="300" cy="72" r="4"/><circle cx="300" cy="288" r="4"/>
+    <circle cx="410" cy="108" r="4"/><circle cx="410" cy="252" r="4"/>
+  </g>
+  <circle cx="300" cy="180" r="40" fill="#c0392b"/>
+  <circle cx="300" cy="180" r="52" fill="none" stroke="#c0392b" stroke-opacity=".26" stroke-width="1.4"/>
+  <g fill="#fff">
+    <circle cx="300" cy="166" r="4.5"/><circle cx="300" cy="194" r="4.5"/><circle cx="288" cy="180" r="4.5"/><circle cx="312" cy="180" r="4.5"/>
+  </g>
+  <g font-family="system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+    <text x="40" y="52" font-size="12" letter-spacing="3" fill="#a1a1aa">TAIKUA AGENT</text>
+    <text x="40" y="84" font-size="22" font-weight="700" fill="#18181b">社媒矩阵智能体</text>
+    <rect x="40" y="98" width="66" height="22" rx="11" fill="#c0392b" fill-opacity=".1" stroke="#c0392b" stroke-opacity=".35"/>
+    <text x="53" y="113" font-size="11.5" fill="#c0392b">国内版</text>
+    <text x="600" y="322" font-size="11.5" text-anchor="end" fill="#a1a1aa" letter-spacing="1">SOCIAL · CN</text>
+  </g>
+</svg>

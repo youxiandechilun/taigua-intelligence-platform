@@ -1,0 +1,963 @@
+/*
+ * 中文导读：数字员工与话术：agent.service.ts。实现可供接口或后台任务调用的业务操作。
+ */
+import {requireSystemAdminAccess} from '../../lib/access-control.js';
+import {platformEnabled} from '../platform/platform-client.js';
+import {requireScriptManager} from './script-access.js';
+import {crmDb} from '../crm/crm.db.js';
+import { getWorkspaceProfile } from "../workspace/workspace.profile.js";
+import { compilePlaybook, playbookVariables, normalizeScript, playbookOpening } from "./agent.playbook.js";
+import prisma from "../../config/prisma.js";
+import { isAliyunVoice } from "../../config/voice-backend.js";
+import { assertSafeWebhookSecretDestinationUpdate } from "../tools/tool-secret-destination.js";
+import { randomUUID } from "node:crypto";
+import { Prisma } from "../../../prisma/generated/prisma/client.js";
+import { BadRequestError } from "../../common/errors/badRequest.js";
+import CustomApiError from "../../common/errors/customApiError.js";
+import { NotFoundError } from "../../common/errors/notFound.js";
+import { generateSlug } from "../../common/utils/generateSlug.js";
+import { assertSafeRemoteUrl } from "../../lib/url-safety.js";
+import {
+  containsReservedSecretEnvelope,
+  redactSecretFields,
+  restoreRedactedSecretReferences,
+} from "../../lib/secrets.js";
+import {
+  assertSecretReferencesOwnedByOrganization,
+  deleteSecretReferences,
+  pruneScopedSecretReferences,
+  resolveSecretReferences,
+  storeSecretReferences,
+} from "../secrets/secret-store.service.js";
+import { cleanupKnowledgeSourceAssets } from "../kb/kb-assets.service.js";
+import * as kbRepository from "../kb/kb.repository.js";
+import { linkAgentToNumber } from "../numbers/phone.service.js";
+import * as agentRepository from "./agent.repository.js";
+import { templateConfigFor } from "./agent.templates.js";
+import type {
+  ConfigureAgentArgs,
+  CreateAgentArgs,
+  UpdateAgentInput,
+} from "./agent.schema.js";
+import { estimateConfiguredMinuteMicros } from "../billing/call-pricing.service.js";
+import {
+  getCallAdmissionCatalog,
+  PricingUnavailableError,
+} from "../billing/database-rate-catalog.service.js";
+import {
+  authorizeCallBilling,
+  callAdmissionMessage,
+  cancelCallBillingAdmission,
+} from "../billing/call-metering.service.js";
+import { assertSupportedBillingModels } from "../billing/call-pricing.service.js";
+import { PaymentRequiredError } from "../../common/errors/paymentRequired.js";
+import { enqueueAgentDeletion } from "../../queues/agent-deletion.queue.js";
+
+export type VoiceCatalog = {
+  version: string;
+  defaults: Record<string, unknown>;
+  languages: Array<{ id: string; label: string; locale?: string }>;
+  timezones: string[];
+  stt_models: Array<Record<string, unknown>>;
+  llm_models: Array<Record<string, unknown>>;
+  tts_models: Array<Record<string, unknown>>;
+  voices: Array<Record<string, unknown>>;
+};
+
+export const PREVIEW_SESSION_TTL_SECONDS = 10800;
+
+type PreviewConfigSource = {
+  agentId: string;
+  organizationId: string;
+  agent_language: string;
+  timezone: string;
+  sttModel: string;
+  llmModel: string;
+  ttsModel: string;
+  voiceId: string;
+  firstMessage: string;
+  systemPrompt: string;
+  variables?: unknown;
+  dynamicVariables?: unknown;
+};
+
+export type AgentPreviewSessionPayload = {
+  room: { name: string };
+  participant: { identity: string; name: string };
+  config: {
+    language: string;
+    timezone: string;
+    stt: { model: string; provider?: string };
+    llm: { model: string; provider?: string };
+    tts: { model: string; provider?: string; voice: string };
+  };
+  metadata: VoiceSessionMetadata;
+  ttl_seconds: number;
+};
+
+export type VoiceSessionMetadata = {
+  mode: "preview" | "widget" | "session";
+  agent_id: string;
+  organization_id: string;
+  first_message?: string;
+  system_prompt?: string;
+  dynamic_variables?: Record<string, string>;
+  retention?: "ephemeral" | "configured";
+  [key: string]: unknown;
+};
+
+export type VoiceSessionPayload = Omit<
+  AgentPreviewSessionPayload,
+  "metadata"
+> & {
+  metadata: VoiceSessionMetadata;
+};
+
+export type AgentPreviewSession = {
+  livekitUrl: string;
+  roomName: string;
+  participant: {
+    identity: string;
+    name: string;
+    token: string;
+    ttlSeconds: number;
+  };
+  agent: {
+    name: string;
+    dispatchId: string;
+  };
+  expiresAt: string;
+};
+
+export const createAgent = async (args: CreateAgentArgs) => {
+  if (platformEnabled()) await requireScriptManager({workspaceId:args.organizationId,userId:args.userId});
+  else await requireSystemAdminAccess(args.userId);
+  // Chinese display names lose their letters in the ASCII slug generator.
+  // Give new agents a distinct identifier without changing their display name.
+  const agentSlug = /\p{Script=Han}/u.test(args.name)
+    ? `${generateSlug(args.name)}-${randomUUID().slice(0, 8)}`
+    : generateSlug(args.name);
+  const existing = await agentRepository.findBySlug(
+    args.organizationId,
+    agentSlug,
+  );
+
+  if (existing) {
+    throw new BadRequestError(
+      "An agent with a similar name already exists in this organization",
+    );
+  }
+
+  const createInput = {
+    ...args,
+    agentSlug,
+  };
+  const profile = await getWorkspaceProfile(args.organizationId);
+  const templateConfig = templateConfigFor(
+    args.templateId,
+    profile.companyName,
+  );
+
+  try {
+    return templateConfig
+      ? await agentRepository.createAgentWithConfiguration(
+          createInput,
+          templateConfig,
+        )
+      : await agentRepository.createAgent(createInput);
+  } catch (error) {
+    if (isUniqueConstraintViolation(error)) {
+      throw new BadRequestError(
+        "An agent with a similar name already exists in this organization",
+      );
+    }
+    throw error;
+  }
+};
+
+export const getAgents = async (organizationId: string) => {
+  const agents = await agentRepository.getAgents(organizationId);
+  if (!isAliyunVoice) return agents;
+  const [connectionRow, knowledge, calls] = await Promise.all([
+    prisma.aliyunConnection.findUnique({
+      where: { organizationId },
+      select: { settings: true },
+    }),
+    crmDb.query('SELECT "agentId" FROM "WorkspaceKnowledge" WHERE "organizationId"=$1 AND "enabled"=true AND "deletedAt" IS NULL',[organizationId]),
+    prisma.callLog.groupBy({
+      by: ["agentId"],
+      where: { organizationId, deleted: false },
+      _count: { _all: true },
+    }),
+  ]);
+  const settings = (connectionRow?.settings || {}) as {
+    callerNumbers?: string[];
+  };
+  return agents.map((agent) => ({
+    ...agent,
+    phoneNumbersCount: settings.callerNumbers?.length || 0,
+    knowledgeSourcesCount: knowledge.filter(
+      (k) => !k.agentId || k.agentId === agent.agentId,
+    ).length,
+    callLogsCount:
+      calls.find((c) => c.agentId === agent.agentId)?._count._all || 0,
+    toolsCount: 0,
+  }));
+};
+
+export const getVoiceCatalog = async (): Promise<VoiceCatalog> => {
+  if (isAliyunVoice)
+    throw new BadRequestError(
+      "阿里云电话声音和模型请在云端话术中配置，文字试聊模型在阿里云配置页选择。",
+    );
+  const aiApiUrl = process.env.AI_API_URL ?? "http://localhost:5555";
+  const internalApiKey = requireInternalApiKey();
+  const response = await fetch(`${aiApiUrl.replace(/\/$/, "")}/voice/catalog`, {
+    headers: { "x-internal-key": internalApiKey },
+  });
+
+  if (!response.ok) {
+    throw new CustomApiError("Voice catalog is unavailable", 503);
+  }
+
+  return (await response.json()) as VoiceCatalog;
+};
+
+export const createAgentPreviewSession = async (
+  organizationId: string,
+  agentId: string,
+  dynamicVariables?: unknown,
+): Promise<AgentPreviewSession> => {
+  if (isAliyunVoice)
+    throw new BadRequestError("请使用百炼文字试聊；阿里云电话由云端话术执行。");
+  const configuration = await getAgentConfig(organizationId, agentId);
+  const payload = buildAgentPreviewSessionPayload({
+    agentId,
+    organizationId,
+    agent_language: configuration.agent_language,
+    timezone: configuration.timezone,
+    sttModel: configuration.sttModel,
+    llmModel: configuration.llmModel,
+    ttsModel: configuration.ttsModel,
+    voiceId: configuration.voiceId,
+    firstMessage: configuration.firstMessage,
+    systemPrompt: configuration.systemPrompt,
+    variables: configuration.variables,
+    dynamicVariables,
+  });
+  const admission = await authorizeCallBilling({
+    organizationId,
+    callId: payload.room.name,
+    roomName: payload.room.name,
+    agentId,
+  });
+  if (admission.action === "stop") {
+    throw new PaymentRequiredError(
+      callAdmissionMessage(
+        admission,
+        "Add credit before starting a preview call",
+      ),
+      {
+        reason: admission.reason,
+        requiredMicros: admission.reserveMicros?.toString() ?? null,
+      },
+    );
+  }
+  try {
+    return await requestAgentPreviewSession(payload);
+  } catch (error) {
+    await cancelCallBillingAdmission({
+      organizationId,
+      callId: payload.room.name,
+      reason: "preview_session_creation_failed",
+    }).catch(() => undefined);
+    throw error;
+  }
+};
+
+export const buildAgentPreviewSessionPayload = (
+  configuration: PreviewConfigSource,
+): AgentPreviewSessionPayload => {
+  const suffix = randomUUID().replace(/-/g, "").slice(0, 12);
+  const dynamicVariables = {
+    ...previewDynamicVariables(configuration.variables),
+    ...previewDynamicVariableOverrides(configuration.dynamicVariables),
+  };
+  const firstMessage = renderPreviewDynamicVariables(
+    configuration.firstMessage,
+    dynamicVariables,
+  );
+  const systemPrompt = renderPreviewDynamicVariables(
+    configuration.systemPrompt,
+    dynamicVariables,
+  );
+
+  return {
+    room: { name: `preview-${suffix}` },
+    participant: {
+      identity: `preview-user-${suffix}`,
+      name: "Preview user",
+    },
+    config: {
+      language: configuration.agent_language,
+      timezone: configuration.timezone,
+      stt: providerModel(configuration.sttModel),
+      llm: providerModel(configuration.llmModel),
+      tts: {
+        ...providerModel(configuration.ttsModel),
+        voice: configuration.voiceId,
+      },
+    },
+    metadata: {
+      mode: "preview",
+      agent_id: configuration.agentId,
+      organization_id: configuration.organizationId,
+      first_message: firstMessage,
+      system_prompt: systemPrompt,
+      ...(Object.keys(dynamicVariables).length > 0
+        ? { dynamic_variables: dynamicVariables }
+        : {}),
+      retention: "ephemeral",
+    },
+    ttl_seconds: PREVIEW_SESSION_TTL_SECONDS,
+  };
+};
+
+export function providerModel(value: string) {
+  const separator = value.indexOf("/");
+  if (separator <= 0 || separator === value.length - 1) {
+    return { model: value };
+  }
+  return {
+    provider: value.slice(0, separator),
+    model: value.slice(separator + 1),
+  };
+}
+
+function renderPreviewDynamicVariables(
+  template: string,
+  variables: Record<string, string>,
+): string {
+  return template.replace(
+    /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g,
+    (match, key) => {
+      const value = variables[key];
+      return value?.trim() ? value : match;
+    },
+  );
+}
+
+function previewDynamicVariables(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const placeholders = (value as { placeholders?: unknown }).placeholders;
+  if (
+    !placeholders ||
+    typeof placeholders !== "object" ||
+    Array.isArray(placeholders)
+  ) {
+    return {};
+  }
+
+  const variables: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(
+    placeholders as Record<string, unknown>,
+  )) {
+    const name = key.trim();
+    if (!name || typeof entry !== "string") continue;
+    const variableValue = entry.trim();
+    if (variableValue) variables[name] = variableValue;
+  }
+  return variables;
+}
+
+function previewDynamicVariableOverrides(
+  value: unknown,
+): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  const variables: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    const name = key.trim();
+    if (!name || typeof entry !== "string") continue;
+    const variableValue = entry.trim();
+    if (variableValue) variables[name] = variableValue;
+  }
+  return variables;
+}
+
+export const requestVoiceSession = async (
+  payload: VoiceSessionPayload,
+  unavailableMessage = "Voice session is unavailable",
+): Promise<AgentPreviewSession> => {
+  if (isAliyunVoice)
+    throw new BadRequestError("请使用百炼文字试聊；阿里云电话由云端话术执行。");
+  const aiApiUrl = process.env.AI_API_URL ?? "http://localhost:5555";
+  const internalApiKey = requireInternalApiKey();
+  const response = await fetch(
+    `${aiApiUrl.replace(/\/$/, "")}/voice/sessions`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-internal-key": internalApiKey,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15_000),
+    },
+  );
+
+  if (!response.ok) {
+    throw new CustomApiError(unavailableMessage, 503);
+  }
+
+  const body = (await response.json()) as {
+    livekit_url?: string;
+    room?: { name?: string };
+    participant?: {
+      identity?: string;
+      name?: string;
+      token?: string;
+      ttl_seconds?: number;
+    };
+    agent?: {
+      name?: string;
+      dispatch_id?: string;
+    };
+  };
+
+  const ttlSeconds = body.participant?.ttl_seconds ?? payload.ttl_seconds;
+  return {
+    livekitUrl: requireString(body.livekit_url, "livekit_url"),
+    roomName: requireString(body.room?.name, "room.name"),
+    participant: {
+      identity: requireString(
+        body.participant?.identity,
+        "participant.identity",
+      ),
+      name: requireString(body.participant?.name, "participant.name"),
+      token: requireString(body.participant?.token, "participant.token"),
+      ttlSeconds,
+    },
+    agent: {
+      name: requireString(body.agent?.name, "agent.name"),
+      dispatchId: requireString(body.agent?.dispatch_id, "agent.dispatch_id"),
+    },
+    expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+  };
+};
+
+export const requestAgentPreviewSession = async (
+  payload: AgentPreviewSessionPayload,
+): Promise<AgentPreviewSession> =>
+  requestVoiceSession(payload, "Agent preview is unavailable");
+
+export const updateAgent = async (
+  organizationId: string,
+  agentId: string,
+  input: UpdateAgentInput,
+  actorUserId: string,
+) => {
+  if (input.isActive !== undefined) {
+    if (platformEnabled()) await requireScriptManager({workspaceId:organizationId,userId:actorUserId});
+    else await requireSystemAdminAccess(actorUserId);
+  }
+  const data: UpdateAgentInput & { agentSlug?: string } = { ...input };
+
+  // If the name is changing, regenerate the slug and verify uniqueness.
+  // Allow a rename that resolves to the same slug on the *same* agent
+  // (idempotent); reject only if another agent in the org already owns it.
+  // Keep the existing identifier when renaming to a Chinese display name.
+  // Replacing it with the generic "agent" slug would collide with other agents.
+  if (input.name && !/\p{Script=Han}/u.test(input.name)) {
+    const newSlug = generateSlug(input.name);
+    const existing = await agentRepository.findBySlug(organizationId, newSlug);
+    if (existing && existing.agentId !== agentId) {
+      throw new BadRequestError(
+        "An agent with a similar name already exists in this organization",
+      );
+    }
+    data.agentSlug = newSlug;
+  }
+
+  let updated;
+  try {
+    updated = await agentRepository.updateAgent(organizationId, agentId, data);
+  } catch (error) {
+    if (isUniqueConstraintViolation(error)) {
+      throw new BadRequestError(
+        "An agent with a similar name already exists in this organization",
+      );
+    }
+    throw error;
+  }
+
+  if (!updated) {
+    throw new NotFoundError("Agent not found");
+  }
+
+  return updated;
+};
+
+export const deleteAgent = async (
+  organizationId: string,
+  agentId: string,
+  dependencies: {
+    cleanupKnowledgeSourceAssetsImpl?: typeof cleanupKnowledgeSourceAssets;
+    claimKnowledgeSourceDeletionImpl?: typeof kbRepository.claimKnowledgeSourceDeletion;
+    deleteKnowledgeSourceImpl?: typeof kbRepository.deleteKnowledgeSource;
+    getAgentDeletionContextImpl?: typeof agentRepository.getAgentDeletionContext;
+    deleteAgentImpl?: typeof agentRepository.deleteAgent;
+    unlinkNumberImpl?: typeof linkAgentToNumber;
+  } = {},
+) => {
+  if (isAliyunVoice) {
+    const pending = await prisma.aliyunTask.count({
+      where: {
+        organizationId,
+        agentId,
+        status: {
+          in: [
+            "UPLOADING",
+            "UPLOADED",
+            "SUBMITTING",
+            "SUBMITTED",
+            "RUNNING",
+            "NEEDS_REVIEW",
+          ],
+        },
+      },
+    });
+    if (pending)
+      throw new BadRequestError(
+        "请先在阿里云核对并停止此智能体的待执行任务，再删除智能体。",
+      );
+  }
+  const getDeletionContext =
+    dependencies.getAgentDeletionContextImpl ??
+    agentRepository.getAgentDeletionContext;
+  const context = await getDeletionContext(organizationId, agentId);
+  if (!context) {
+    throw new NotFoundError("Agent not found");
+  }
+
+  const unlinkNumber = dependencies.unlinkNumberImpl ?? linkAgentToNumber;
+  for (const phoneNumber of isAliyunVoice ? [] : context.phoneNumbers) {
+    await unlinkNumber({
+      organizationId,
+      phId: phoneNumber.phId,
+      agentId: null,
+    });
+  }
+
+  const cleanupAssets =
+    dependencies.cleanupKnowledgeSourceAssetsImpl ??
+    cleanupKnowledgeSourceAssets;
+  const deleteKnowledgeSource =
+    dependencies.deleteKnowledgeSourceImpl ??
+    kbRepository.deleteKnowledgeSource;
+  for (const source of context.knowledgeSources) {
+    const deletionToken = randomUUID();
+    const claimed = await (
+      dependencies.claimKnowledgeSourceDeletionImpl ??
+      kbRepository.claimKnowledgeSourceDeletion
+    )(source.kbId, organizationId, deletionToken);
+    if (!claimed) {
+      throw new NotFoundError("Knowledge source not found");
+    }
+    await cleanupAssets(claimed);
+    await deleteKnowledgeSource(source.kbId, organizationId, deletionToken);
+  }
+
+  const deleteAgentImpl =
+    dependencies.deleteAgentImpl ?? agentRepository.deleteAgent;
+  const result = await deleteAgentImpl(organizationId, agentId);
+
+  if (result.count === 0) {
+    throw new NotFoundError("Agent not found");
+  }
+};
+
+export const requestAgentDeletion = async (
+  organizationId: string,
+  agentId: string,
+  dependencies: {
+    requestAgentDeletionImpl?: typeof agentRepository.requestAgentDeletion;
+    enqueueAgentDeletionImpl?: typeof enqueueAgentDeletion;
+  } = {},
+) => {
+  const requested = await (
+    dependencies.requestAgentDeletionImpl ??
+    agentRepository.requestAgentDeletion
+  )(organizationId, agentId);
+  if (!requested) throw new NotFoundError("Agent not found");
+
+  try {
+    await (dependencies.enqueueAgentDeletionImpl ?? enqueueAgentDeletion)({
+      organizationId,
+      agentId,
+    });
+  } catch (error) {
+    // The durable database marker is the source of truth. Startup and periodic
+    // recovery will recreate a job lost during a Redis outage.
+    console.error(
+      "[agent-deletion] initial enqueue failed; recovery will retry",
+      {
+        organizationId,
+        agentId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+  }
+
+  return {
+    agentId,
+    status: "deleting" as const,
+    requestedAt: requested.deletionRequestedAt,
+  };
+};
+
+export const configureAgent = async (args: ConfigureAgentArgs) => {
+  if (containsReservedSecretEnvelope(args)) {
+    throw new BadRequestError("Encrypted secret envelopes cannot be submitted");
+  }
+  const { organizationId, userId, agentId, ...data } = args;
+  if (data.conversationPlaybook) {
+    data.conversationPlaybook = normalizeScript(data.conversationPlaybook);
+    data.firstMessage = playbookOpening(data.conversationPlaybook);
+    data.systemPrompt = compilePlaybook(data.conversationPlaybook);
+    data.variables = playbookVariables(
+      data.conversationPlaybook,
+      data.variables?.placeholders ?? {},
+    );
+  }
+  try {
+    if (!isAliyunVoice)
+      assertSupportedBillingModels({
+        sttModel: data.sttModel,
+        llmModel: data.llmModel,
+        ttsModel: data.ttsModel,
+      });
+  } catch (error) {
+    throw new BadRequestError(
+      error instanceof Error
+        ? error.message
+        : "The selected model does not have a billable rate",
+    );
+  }
+  await assertSafeWebhookUrls(data);
+  const agent = await agentRepository.findByIdForOrg(organizationId, agentId);
+  if (!agent) {
+    throw new NotFoundError("Agent not found");
+  }
+  const existingConfiguration = await agentRepository.getAgentConfig(
+    organizationId,
+    agentId,
+  );
+
+  for (const field of ["initiation_webhook", "post_call_webhook"] as const) {
+    assertSafeWebhookSecretDestinationUpdate(
+      existingConfiguration?.[field],
+      data[field],
+    );
+  }
+
+  const createdSecretIds: string[] = [];
+  let persisted = false;
+  try {
+    const protectedData = await protectAgentConfigSecrets(
+      organizationId,
+      userId,
+      agentId,
+      data,
+      existingConfiguration,
+      createdSecretIds,
+    );
+    await assertAgentSecretOwnership(protectedData, organizationId);
+    const configuration = await agentRepository.configureAgent(
+      organizationId,
+      agentId,
+      protectedData,
+    );
+
+    if (!configuration) {
+      throw new NotFoundError("Agent not found");
+    }
+    persisted = true;
+    await cleanupReplacedAgentSecrets(
+      organizationId,
+      agentId,
+      existingConfiguration,
+      configuration,
+    );
+
+    return withEstimatedPrice(redactAgentConfigSecrets(configuration));
+  } catch (error) {
+    if (!persisted) {
+      await cleanupUncommittedAgentSecrets(
+        organizationId,
+        agentId,
+        createdSecretIds,
+      );
+    }
+    throw error;
+  }
+};
+
+export const getAgentConfig = async (
+  organizationId: string,
+  agentId: string,
+) => {
+  const configuration = await agentRepository.getAgentConfig(
+    organizationId,
+    agentId,
+  );
+
+  if (!configuration) {
+    throw new NotFoundError("Agent configuration not found");
+  }
+
+  return withEstimatedPrice(redactAgentConfigSecrets(configuration));
+};
+
+async function withEstimatedPrice<
+  T extends {
+    sttModel?: string | null;
+    llmModel?: string | null;
+    ttsModel?: string | null;
+  },
+>(configuration: T) {
+  if (isAliyunVoice)
+    return { ...configuration, estimatedPricePerMinuteMicros: null };
+  const resolved = await getCallAdmissionCatalog({}).catch((error: unknown) => {
+    if (error instanceof PricingUnavailableError) return null;
+    throw error;
+  });
+  if (!resolved)
+    return { ...configuration, estimatedPricePerMinuteMicros: null };
+  const { catalog } = resolved;
+  return {
+    ...configuration,
+    estimatedPricePerMinuteMicros: estimateConfiguredMinuteMicros({
+      sttModel: configuration.sttModel,
+      llmModel: configuration.llmModel,
+      ttsModel: configuration.ttsModel,
+      rateCatalog: catalog,
+    }).toString(),
+  };
+}
+
+export const getAgentConfigByNumber = async (phoneNumber: string) => {
+  const normalizedPhoneNumber = phoneNumber.trim();
+
+  if (!normalizedPhoneNumber) {
+    throw new BadRequestError("Phone number is required");
+  }
+
+  const configuration = await agentRepository.getAgentConfigByNumber(
+    normalizedPhoneNumber,
+  );
+
+  if (!configuration) {
+    throw new NotFoundError("Agent configuration not found");
+  }
+
+  return resolveRuntimeConfigSecrets(configuration);
+};
+
+export const getAgentConfigByIdForRuntime = async (agentId: string) => {
+  const normalizedAgentId = agentId.trim();
+
+  if (!normalizedAgentId) {
+    throw new BadRequestError("Agent id is required");
+  }
+
+  const configuration =
+    await agentRepository.getAgentConfigByIdForRuntime(normalizedAgentId);
+
+  if (!configuration) {
+    throw new NotFoundError("Agent configuration not found");
+  }
+
+  return resolveRuntimeConfigSecrets(configuration);
+};
+
+async function assertSafeWebhookUrls(data: Partial<ConfigureAgentArgs>) {
+  const urls = [
+    data.initiation_webhook?.webhook_url,
+    data.post_call_webhook?.webhook_url,
+  ].filter((url): url is string => typeof url === "string" && url.length > 0);
+
+  await Promise.all(urls.map((url) => assertSafeRemoteUrl(url)));
+}
+
+async function protectAgentConfigSecrets<T extends Record<string, any>>(
+  organizationId: string,
+  userId: string,
+  agentId: string,
+  data: T,
+  existingConfiguration: Record<string, any> | null,
+  createdSecretIds?: string[],
+): Promise<T> {
+  let initiationWebhook: unknown;
+  let postCallWebhook: unknown;
+  try {
+    initiationWebhook = restoreRedactedSecretReferences(
+      data.initiation_webhook,
+      existingConfiguration?.initiation_webhook,
+    );
+    postCallWebhook = restoreRedactedSecretReferences(
+      data.post_call_webhook,
+      existingConfiguration?.post_call_webhook,
+    );
+  } catch {
+    throw new BadRequestError(
+      "A redacted webhook secret could not be preserved; enter it again",
+    );
+  }
+
+  return {
+    ...data,
+    initiation_webhook: await storeSecretReferences(initiationWebhook, {
+      organizationId,
+      userId,
+      namePrefix: `agent:${agentId}:initiation_webhook`,
+      createdSecretIds,
+    }),
+    post_call_webhook: await storeSecretReferences(postCallWebhook, {
+      organizationId,
+      userId,
+      namePrefix: `agent:${agentId}:post_call_webhook`,
+      createdSecretIds,
+    }),
+  };
+}
+
+async function assertAgentSecretOwnership(
+  configuration: Record<string, any>,
+  organizationId: string,
+) {
+  try {
+    await assertSecretReferencesOwnedByOrganization(
+      [configuration.initiation_webhook, configuration.post_call_webhook],
+      organizationId,
+    );
+  } catch {
+    throw new BadRequestError("One or more webhook secrets are unavailable");
+  }
+}
+
+async function cleanupReplacedAgentSecrets(
+  organizationId: string,
+  agentId: string,
+  previousConfiguration: Record<string, any> | null,
+  currentConfiguration: Record<string, any>,
+) {
+  try {
+    await pruneScopedSecretReferences({
+      organizationId,
+      namePrefixes: [
+        `agent:${agentId}:initiation_webhook`,
+        `agent:${agentId}:post_call_webhook`,
+      ],
+      previousValues: previousConfiguration
+        ? [
+            previousConfiguration.initiation_webhook,
+            previousConfiguration.post_call_webhook,
+          ]
+        : [],
+      currentValues: [
+        currentConfiguration.initiation_webhook,
+        currentConfiguration.post_call_webhook,
+      ],
+    });
+  } catch (error) {
+    console.warn("[secrets] failed to prune replaced agent secrets", {
+      organizationId,
+      agentId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+async function cleanupUncommittedAgentSecrets(
+  organizationId: string,
+  agentId: string,
+  secretIds: string[],
+) {
+  try {
+    await deleteSecretReferences(organizationId, secretIds);
+  } catch (error) {
+    console.warn("[secrets] failed to remove uncommitted agent secrets", {
+      organizationId,
+      agentId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+function redactAgentConfigSecrets<T extends Record<string, any>>(
+  configuration: T,
+): T {
+  return {
+    ...configuration,
+    initiation_webhook: redactSecretFields(configuration.initiation_webhook),
+    post_call_webhook: redactSecretFields(configuration.post_call_webhook),
+  };
+}
+
+async function resolveRuntimeConfigSecrets<T extends Record<string, any>>(
+  configuration: T,
+): Promise<T> {
+  const organizationId = configuration.organizationId;
+  return {
+    ...configuration,
+    initiation_webhook: organizationId
+      ? await resolveSecretReferences(
+          configuration.initiation_webhook,
+          organizationId,
+        )
+      : configuration.initiation_webhook,
+    post_call_webhook: organizationId
+      ? await resolveSecretReferences(
+          configuration.post_call_webhook,
+          organizationId,
+        )
+      : configuration.post_call_webhook,
+    tools: Array.isArray(configuration.tools)
+      ? await Promise.all(
+          configuration.tools.map((tool) =>
+            organizationId
+              ? resolveSecretReferences(tool, organizationId)
+              : tool,
+          ),
+        )
+      : configuration.tools,
+  };
+}
+
+function requireString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new CustomApiError(
+      `AI preview response is missing ${fieldName}`,
+      503,
+    );
+  }
+  return value;
+}
+
+function requireInternalApiKey() {
+  const value = process.env.INTERNAL_API_KEY?.trim();
+  if (!value) {
+    throw new CustomApiError("Internal AI integration is not configured", 503);
+  }
+  return value;
+}
+
+function isUniqueConstraintViolation(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
+  );
+}

@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>智能体管理 - 泰卦智能 商家服务平台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="common.css" />
+<style>
+.acc-head .actions{display:flex;gap:8px;margin-left:auto}
+.acc-head .actions .btn{padding:4px 10px;font-size:12.5px;border-radius:8px}
+.acc-head .chev{margin-left:0}
+.acc-head.has-actions .chev{margin-left:auto}
+</style>
+</head>
+<body>
+<div class="console">
+  <div id="sidebar-root"></div>
+  <main class="main">
+    <div class="main-inner">
+      <div class="page-head" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px">
+        <div>
+          <span class="sec-tag">Agent Management</span>
+          <h1>智能体管理</h1>
+          <p>点击「进入」直接打开智能体工作台；如需开通或续期，请联系平台客服</p>
+        </div>
+        <div style="display:flex;gap:10px" id="admin-actions"></div>
+      </div>
+
+      <div id="acc-list"></div>
+    </div>
+  </main>
+</div>
+
+<script src="common.js"></script>
+<script>
+let TAGS = [], AGENTS = [], ME = null;
+const $ = s => document.querySelector(s);
+const f = id => document.getElementById(id);
+const isAdmin = () => ME && ME.role === 'admin';
+
+(async () => {
+  ME = await initConsole('agents.html');
+  if (!ME) return;
+  renderAdminButtons();
+  await load();
+  if (TAGS.length) document.querySelectorAll('.acc').forEach(a => a.classList.add('open'));  // 进入页面自动展开全部分类
+})();
+
+function renderAdminButtons() {
+  if (!isAdmin()) return;
+  f('admin-actions').innerHTML = `<button class="btn" onclick="addTagModal()">＋ 添加分类</button>`;
+}
+
+async function load() {
+  const [t, a] = await Promise.all([api('/api/agent-tags'), api('/api/agents')]);
+  TAGS = t.code === 0 ? t.data : [];
+  AGENTS = a.code === 0 ? a.data : [];
+  render();
+}
+
+function agentsOf(tagId) { return AGENTS.filter(x => x.tag_id === tagId); }
+
+function render() {
+  const wrap = f('acc-list');
+  if (!TAGS.length) {
+    wrap.innerHTML = `<div class="card plain" style="text-align:center;padding:60px;color:var(--muted)">
+      暂无分类${isAdmin() ? '，点击右上角「添加分类」创建' : '，请联系管理员'}</div>`;
+    return;
+  }
+  const showTags = isAdmin() ? TAGS : TAGS.filter(t => agentsOf(t.id).length);
+  wrap.innerHTML = showTags.map(t => {
+    const list = agentsOf(t.id);
+    return `
+    <div class="acc" data-tag="${t.id}">
+      <div class="acc-head has-actions" onclick="toggleAcc(this)">
+        <span class="acc-title">${esc(t.name)}</span>
+        <span class="acc-count">${list.length} 个智能体</span>
+        ${isAdmin() ? `<span class="actions">
+          <button class="btn" onclick="event.stopPropagation();editTagModal(${t.id},'${esc(t.name)}')">编辑</button>
+          <button class="btn btn-danger" onclick="event.stopPropagation();delTag(${t.id},'${esc(t.name)}')">删除</button>
+        </span>` : ''}
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+      <div class="acc-body">
+        ${list.length ? list.map(a => `
+        <div class="acc-item">
+          <span class="dot ${a.status === 'running' ? 'on' : 'off'}"></span>
+          <div class="info">
+            <h4>${esc(a.name)} <span class="badge red">${esc(a.region)}</span></h4>
+            <p>${esc(a.description)}</p>
+          </div>
+          ${isAdmin() ? `
+          <label class="switch" title="启用/停用">
+            <input type="checkbox" ${a.status === 'running' ? 'checked' : ''}
+              onchange="toggleAgent(${a.id}, this.checked)" />
+            <i></i>
+          </label>
+          ` : ''}
+          <button class="btn btn-sm" onclick="agentJump(${a.id})">点击进入</button>
+        </div>`).join('') : `<div class="acc-item muted small" style="justify-content:center">该分类下暂无智能体</div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAcc(head) { head.parentElement.classList.toggle('open'); }
+
+/* ---------- 智能体操作 ---------- */
+async function toggleAgent(id, on) {
+  const j = await api('/api/agents/' + id, 'PUT', { status: on ? 'running' : 'stopped' });
+  if (j.code === 0) toast(on ? '已启用' : '已停用');
+  else { toast(j.msg || '操作失败'); load(); }
+}
+
+function agentJump(id) {
+  const a = AGENTS.find(x => x.id === id);
+  if (!a) return toast('智能体不存在');
+  const link = (a.link || '').trim();
+  if (link) {
+    // 配置了跳转链接：新窗口打开（自动补全 http 前缀）
+    const url = /^https?:\/\//i.test(link) ? link : 'https://' + link;
+    window.open(url, '_blank');
+    return;
+  }
+  agentDetail(id);
+}
+
+async function agentDetail(id) {
+  const j = await api('/api/agents/' + id);
+  if (j.code !== 0) return toast(j.msg || '获取失败');
+  const a = j.data;
+  openModal(`
+    <h3>${esc(a.name)}</h3>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <span class="badge red">${esc(a.region)}</span>
+      <span class="badge">${esc(a.tag_name)}</span>
+      <span class="badge ${a.status === 'running' ? 'green' : ''}">${a.status === 'running' ? '● 运行中' : '○ 已停止'}</span>
+    </div>
+    <p class="muted small" style="margin-bottom:16px">${esc(a.description) || '暂无描述'}</p>
+    <div class="divider"></div>
+    <div class="small" style="font-weight:600;margin-bottom:10px">对话测试</div>
+    <div class="chat-box" id="chat-box" style="height:240px">
+      <div class="bubble bot">您好，我是 ${esc(a.name)}，可以发送消息进行测试。</div>
+    </div>
+    <div class="chat-input">
+      <input id="chat-input" placeholder="输入消息…" onkeydown="if(event.key==='Enter')sendChat(${a.id})" />
+      <button class="btn btn-primary" onclick="sendChat(${a.id})">发送</button>
+    </div>
+    ${isAdmin() ? `<div class="modal-foot">
+      <button class="btn" onclick="editAgentModal(${a.id})">编辑</button>
+      <button class="btn btn-danger" onclick="delAgent(${a.id})">删除智能体</button>
+      <button class="btn btn-primary" onclick="closeModal()">关闭</button>
+    </div>` : `<div class="modal-foot"><button class="btn btn-primary" onclick="closeModal()">关闭</button></div>`}
+  `, true);
+}
+
+async function sendChat(id) {
+  const input = f('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const box = f('chat-box');
+  box.insertAdjacentHTML('beforeend', `<div class="bubble me">${esc(msg)}</div>`);
+  input.value = '';
+  box.scrollTop = box.scrollHeight;
+  const j = await api(`/api/agents/${id}/chat`, 'POST', { message: msg });
+  const reply = j.code === 0 ? j.data.reply : (j.msg || '服务异常');
+  box.insertAdjacentHTML('beforeend', `<div class="bubble bot">${esc(reply)}</div>`);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ---------- 管理员：分类 ---------- */
+function addTagModal() {
+  openModal(`
+    <h3>添加分类</h3>
+    <div class="field"><label>分类名称<em>*</em></label><input id="tag-name" placeholder="如：电话营销" /></div>
+    <div class="field"><label>排序（越小越靠前）</label><input id="tag-sort" type="number" value="0" /></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitTag()">创建</button>
+    </div>`);
+}
+function editTagModal(id, name) {
+  openModal(`
+    <h3>编辑分类</h3>
+    <div class="field"><label>分类名称<em>*</em></label><input id="tag-name" value="${esc(name)}" /></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitTag(${id})">保存</button>
+    </div>`);
+}
+async function submitTag(id) {
+  const name = f('tag-name').value.trim();
+  if (!name) return toast('分类名称不能为空');
+  const body = { name };
+  if (f('tag-sort')) body.sort = parseInt(f('tag-sort').value || 0);
+  const j = id ? await api('/api/agent-tags/' + id, 'PUT', body)
+               : await api('/api/agent-tags', 'POST', body);
+  if (j.code === 0) { closeModal(); toast('已保存'); load(); }
+  else toast(j.msg || '操作失败');
+}
+async function delTag(id, name) {
+  if (!confirm(`确定删除分类「${name}」？`)) return;
+  const j = await api('/api/agent-tags/' + id, 'DELETE');
+  if (j.code === 0) { toast('已删除'); load(); }
+  else toast(j.msg || '删除失败');
+}
+
+/* ---------- 管理员：智能体编辑（新增只在管理后台） ---------- */
+function editAgentModal(id) {
+  const a = AGENTS.find(x => x.id === id);
+  if (!a) return;
+  closeModal();
+  openModal(`
+    <h3>编辑智能体</h3>
+    <div class="field"><label>智能体名称<em>*</em></label><input id="ag-name" value="${esc(a.name)}" /></div>
+    <div class="form-row">
+      <div class="field"><label>区域</label>
+        <select id="ag-region"><option ${a.region === '国内' ? 'selected' : ''}>国内</option><option ${a.region === '海外' ? 'selected' : ''}>海外</option></select>
+      </div>
+      <div class="field"><label>状态</label>
+        <select id="ag-status"><option value="running" ${a.status === 'running' ? 'selected' : ''}>运行中</option><option value="stopped" ${a.status === 'stopped' ? 'selected' : ''}>已停止</option></select>
+      </div>
+    </div>
+    <div class="field"><label>描述</label><textarea id="ag-desc">${esc(a.description)}</textarea></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitAgent(${id})">保存</button>
+    </div>`);
+}
+async function submitAgent(id) {
+  const body = {
+    name: f('ag-name').value.trim(),
+    region: f('ag-region').value,
+    status: f('ag-status').value,
+    description: f('ag-desc').value.trim(),
+  };
+  if (!body.name) return toast('智能体名称不能为空');
+  const j = await api('/api/agents/' + id, 'PUT', body);
+  if (j.code === 0) { closeModal(); toast('已保存'); load(); }
+  else toast(j.msg || '操作失败');
+}
+async function delAgent(id) {
+  if (!confirm('确定删除该智能体？')) return;
+  const j = await api('/api/agents/' + id, 'DELETE');
+  if (j.code === 0) { closeModal(); toast('已删除'); load(); }
+  else toast(j.msg || '删除失败');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!-- 海外平台图标：使用 Instagram 品牌渐变与相机轮廓。 -->
+<svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="instagram-title">
+  <title id="instagram-title">Instagram</title>
+  <defs>
+    <linearGradient id="instagram-gradient" x1="4" y1="34" x2="34" y2="4" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFDC80"/>
+      <stop offset="0.45" stop-color="#F56040"/>
+      <stop offset="0.75" stop-color="#C13584"/>
+      <stop offset="1" stop-color="#833AB4"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="36" height="36" rx="10" fill="url(#instagram-gradient)"/>
+  <rect x="9" y="9" width="20" height="20" rx="6" stroke="white" stroke-width="2.5"/>
+  <circle cx="19" cy="19" r="4.5" stroke="white" stroke-width="2.5"/>
+  <circle cx="26" cy="12" r="1.6" fill="white"/>
+</svg>

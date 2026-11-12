@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 180" width="260" height="180" role="img" aria-label="暂无数据">
+  <defs>
+    <linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f7f8"/><stop offset="1" stop-color="#f0f0f2"/>
+    </linearGradient>
+  </defs>
+  <rect x="34" y="30" width="192" height="120" rx="12" fill="url(#eg)" stroke="#e4e4e7"/>
+  <path d="M34 52h192" stroke="#e4e4e7"/>
+  <circle cx="50" cy="41" r="3" fill="#d4d4d8"/>
+  <circle cx="61" cy="41" r="3" fill="#d4d4d8"/>
+  <circle cx="72" cy="41" r="3" fill="#c0392b" opacity=".55"/>
+  <rect x="52" y="68" width="66" height="8" rx="4" fill="#e4e4e7"/>
+  <rect x="52" y="86" width="112" height="6" rx="3" fill="#eaeaec"/>
+  <rect x="52" y="100" width="92" height="6" rx="3" fill="#eaeaec"/>
+  <rect x="52" y="114" width="128" height="6" rx="3" fill="#eaeaec"/>
+  <rect x="52" y="130" width="44" height="10" rx="5" fill="#18181b" opacity=".12"/>
+  <rect x="176" y="68" width="34" height="34" rx="8" fill="#fff" stroke="#e4e4e7"/>
+  <path d="M184 85h18M193 76v18" stroke="#c0392b" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+  <rect x="176" y="112" width="34" height="28" rx="8" fill="#fff" stroke="#e4e4e7"/>
+  <path d="M184 126h18" stroke="#d4d4d8" stroke-width="2" stroke-linecap="round"/>
+</svg>

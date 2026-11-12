@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>电销智能体（海外版） - 泰卦智能</title>
+<link rel="icon" href="/image/favicon.svg" type="image/svg+xml" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/common/agent.css" />
+</head>
+<body>
+<div class="console">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <a href="#"><img src="/image/logo.jpg" alt="泰卦智能" /></a>
+      <div class="bt"><b>电销智能体</b>Tele-Sales Agent</div>
+    </div>
+    <div class="env-band glb" title="当前页面所属区域版本"><i></i>海外版<span>全球市场 · GLOBAL</span></div>
+    <div class="side-scroll" id="side-nav"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb" id="crumb"></div>
+      <div class="right">
+        <span class="tag-env" id="env-tag"></span>
+        <button class="icon-btn" id="theme-btn" title="切换深色 / 浅色"></button>
+      </div>
+    </div>
+    <div class="main-inner" id="view"></div>
+  </div>
+</div>
+
+<script>
+window.AGENT_PAGE = {
+  slug: 'sales-global',
+  name: '电销智能体（海外）',
+  title: '电销智能体（海外版）',
+  env: 'glb',
+  envName: '海外版',
+  market: '全球市场',
+  envText: '海外版',
+  kpis: ['今日外呼', '接通率', '平均通话', '意向客户'],
+  tableCols: ['客户', '数字员工', '通话时长', '结果'],
+  modules: [
+    { key: 'dashboard', name: '数据看板', items: [
+      { key: 'call-overview', name: '通话概览', desc: '海外外呼总量、接通率、平均通话时长、意向分级分布与国际线路健康度，支持按时区与语种下钻。' }
+    ]},
+    { key: 'staff', name: '数字员工', items: [
+      { key: 'live-invite', name: '直播间邀约助手', desc: '批量触达海外私域与线索客户，按当地时区邀约进入直播间，记录到场与互动情况。' },
+      { key: 'survey', name: '回访调研助手', desc: '按多语种问卷脚本执行满意度回访、售后回访与市场调研，结果结构化入表。' },
+      { key: 'reception', name: '人工接待助手', desc: 'AI 先接起并完成身份确认与意图判断，需要时一键转接当地真人坐席。' }
+    ]},
+    { key: 'outbound-staff', name: '行业拓客员工', items: [
+      { key: 'follow', name: '客户跟进助手', desc: '对已建档的海外客户按节奏自动跟进，覆盖报价、催单、复购提醒等场景。' },
+      { key: 'after-sale', name: '售后服务助手', desc: '承接跨境订单的安装、维修、退换咨询，自动答疑并派发工单。' },
+      { key: 'foreign-trade', name: '外贸业务拓客助手', desc: '面向海外买家完成首轮触达、产品介绍与询盘筛选，输出有效意向。' }
+    ]},
+    { key: 'recording', name: '录音学习', items: [
+      { key: 'materials', name: '录音素材', desc: '上传优秀通话录音，自动转写、分段与打分，沉淀成可复用的多语种对话范本。' }
+    ]},
+    { key: 'voice', name: '声音库', items: [
+      { key: 'available', name: '可用声音', desc: '管理可授权的多语种发音人音色，支持试听、语速语调调节与场景标签分类。' }
+    ]},
+    { key: 'outbound', name: '外呼中心', items: [
+      { key: 'new-call', name: '新建外呼', desc: '导入或筛选海外目标号码，设置时区窗口、并发数与重呼策略后提交任务。' },
+      { key: 'pick-staff', name: '选择员工', desc: '为任务指定数字员工、语种与话术版本，支持多人分流与灰度对比测试。' },
+      { key: 'pick-line', name: '线路选择', desc: '按国家、号码类型与并发余量选择国际线路，支持主备线路自动切换。' },
+      { key: 'start', name: '开始外呼', desc: '启动外呼任务并实时监控进度、接通情况与异常挂断，可随时暂停或追加名单。' }
+    ]},
+    { key: 'records', name: '通话记录', items: [
+      { key: 'history', name: '通话历史', desc: '全量通话明细，含录音、转写文本、对话轮次与意向标签，支持按国家与时区检索导出。' }
+    ]},
+    { key: 'customers', name: '意向客户库', items: [
+      { key: 'mine', name: '我的客户', desc: '按意向等级沉淀海外客户档案，记录跟进轨迹、下次跟进时间与成交阶段。' }
+    ]},
+    { key: 'kb', name: '知识库', items: [
+      { key: 'business', name: '业务知识库', desc: '维护多语种的产品、价格、政策与常见异议处理资料，作为数字员工的应答依据。' },
+      { key: 'qa', name: '全部问答', desc: '查看知识库自动生成与人工维护的问答对，支持命中率统计与批量校正。' }
+    ]},
+    { key: 'wecom', name: '企业微信', items: [
+      { key: 'contact', name: '客户联系', desc: '打通企业微信客户联系能力，通话后自动添加好友并把线索并入客户池。' },
+      { key: 'notify', name: '数据通知', desc: '把外呼结果、意向等级与待跟进提醒推送到企微群或指定成员。' },
+      { key: 'my-wecom', name: '我的企微', desc: '查看当前绑定的企业微信账号、可见范围与授权状态。' }
+    ]},
+    { key: 'settings', name: '设置中心', items: [
+      { key: 'lines', name: '线路管理', desc: '维护国际外呼线路资源、并发上限、计费方式与可用状态。' },
+      { key: 'brand', name: '公司界面品牌', desc: '配置企业名称、Logo 与主色调，用于员工端与外呼界面的品牌展示。' },
+      { key: 'org', name: '组织人员', desc: '管理坐席、主管与部门结构，配置角色权限与数据可见范围。' },
+      { key: 'platform', name: '平台管理', desc: '维护平台级账号、功能开关与接口对接参数。' },
+      { key: 'llm', name: '大模型配置', desc: '接入与切换底层大模型，配置温度、上下文长度与兜底话术策略。' },
+      { key: 'wecom-bind', name: '企业微信', desc: '绑定企业微信主体，配置自建应用的 CorpID、Secret 与回调地址。' },
+      { key: 'billing', name: '用量与费用', desc: '统计通话时长、模型调用量与线路费用，支持账单明细与余额预警。' }
+    ]}
+  ]
+};
+</script>
+<script src="/common/agent.js"></script>
+</body>
+</html>

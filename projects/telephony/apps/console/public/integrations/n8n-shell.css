@@ -1,0 +1,120 @@
+/*
+ * 中文导读：共享基础能力的样式定义：n8n-shell.css。仅涉及界面外观和布局。
+ */
+/* Presentation adapter for the existing n8n engine. Its data and auth stay in the gateway. */
+:root, body, #n8n-app, [data-theme] {
+  --color--primary: #b83240 !important;
+  --color--primary--shade-1: #a52d3a !important;
+  --color--primary--tint-1: #d95862 !important;
+  --color--primary--tint-2: #f8dce0 !important;
+  --color--primary--tint-3: #fff3f4 !important;
+  --background--brand: #b83240 !important;
+  --background--brand--hover: #a52d3a !important;
+  --background--brand--active: #942735 !important;
+  --background--brand--focus: #b83240 !important;
+  --button--color--background--primary: #b83240 !important;
+  --button--color--background--primary--hover-active-focus: #a52d3a !important;
+  --button--color--text--secondary--hover-active-focus: #b83240 !important;
+  --color--background: #f8fafc !important;
+  --color--background--light-1: #f8fafc !important;
+  --color--background--light-2: #f8fafc !important;
+  --color--background--light-3: #ffffff !important;
+  --color--foreground: #e2e8f0 !important;
+  --color--foreground--tint-1: #f1f5f9 !important;
+  --color--foreground--tint-2: #ffffff !important;
+  --color--text: #334155 !important;
+  --color--text--shade-1: #0f172a !important;
+  --color--text--tint-1: #64748b !important;
+  --color--text--tint-2: #94a3b8 !important;
+  --background--surface: #ffffff !important;
+  --background--subtle: #f8fafc !important;
+  --background--hover: #f1f5f9 !important;
+  --background--active: #fff3f4 !important;
+  --border-color: #e2e8f0 !important;
+  --border-color--subtle: #f1f5f9 !important;
+  --text-color: #0f172a !important;
+  --text-color--subtle: #334155 !important;
+  --text-color--subtler: #64748b !important;
+  --menu--color--background: #ffffff !important;
+  --menu--color--background--active: #fff3f4 !important;
+  --menu--color--background--hover: #f1f5f9 !important;
+  --canvas--color--background: #f8fafc !important;
+  --canvas--label--color: #64748b !important;
+  --node--color--background: #ffffff !important;
+  --focus--border-color: #b83240 !important;
+  --focus--outline-color: #f8dce0 !important;
+  --font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif !important;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+html, body { background: #ffffff !important; color-scheme: light; }
+html[data-taigua-theme="dark"], html[data-taigua-theme="dark"] body,
+html[data-taigua-theme="dark"] #n8n-app, html[data-taigua-theme="dark"] [data-theme] {
+  --color--primary: #d95862 !important;
+  --background--brand: #d95862 !important;
+  --button--color--background--primary: #d95862 !important;
+  --color--background: #171717 !important;
+  --color--background--light-1: #171717 !important;
+  --color--background--light-2: #171717 !important;
+  --color--background--light-3: #0a0a0a !important;
+  --color--foreground: #333333 !important;
+  --color--foreground--tint-1: #262626 !important;
+  --color--foreground--tint-2: #0a0a0a !important;
+  --color--text: #e2e8f0 !important;
+  --color--text--shade-1: #ffffff !important;
+  --color--text--tint-1: #94a3b8 !important;
+  --color--text--tint-2: #64748b !important;
+  --background--surface: #0a0a0a !important;
+  --background--subtle: #171717 !important;
+  --background--hover: #262626 !important;
+  --background--active: #391d22 !important;
+  --border-color: #333333 !important;
+  --border-color--subtle: #262626 !important;
+  --text-color: #ffffff !important;
+  --text-color--subtle: #e2e8f0 !important;
+  --text-color--subtler: #94a3b8 !important;
+  --canvas--color--background: #171717 !important;
+  --menu--color--background: #0a0a0a !important;
+  --menu--color--background--active: #391d22 !important;
+  --menu--color--background--hover: #262626 !important;
+  --node--color--background: #262626 !important;
+  background: #0a0a0a !important;
+  color-scheme: dark;
+}
+#n8n-app {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-areas: "banners banners" "header aside" "content aside" !important;
+}
+#sidebar { display: none !important; }
+#content { min-width: 0; }
+#content [data-taigua-list-page] {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 16px 20px 0 !important;
+}
+@media (max-width: 640px) {
+  #content [data-taigua-list-page] { padding: 12px 12px 0 !important; }
+}
+#content [data-test-id="resources-list-item-workflow"] { padding: 12px 16px !important; margin-bottom: 8px !important; }
+@media (min-width: 640px) {
+  #content [data-test-id="resources-list-item-workflow"] { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 16px; }
+  #content [data-test-id="resources-list-item-workflow"] [data-test-id="card-content"] { flex: 1 !important; min-width: 0; }
+  #content [data-test-id="resources-list-item-workflow"] [data-test-id="card-append"] { width: auto !important; margin: 0 !important; padding: 0 !important; }
+  #content [class*="_cardActions_"] { justify-content: flex-end !important; }
+}
+[data-test-id="project-tabs"], [data-test-id="insights-summary-tabs"] { display: none !important; }
+div:has(> [data-test-id="project-tabs"]),
+div[class*="_insightsWrapper_"]:has([data-test-id="insights-summary-tabs"]) { display: none !important; }
+[class*="_projectHeader_"] {
+  min-height: 0 !important;
+  margin-bottom: 20px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+[data-test-id="project-subtitle"] { display: none !important; }
+[data-test-id="project-name"] { font-size: 17px !important; line-height: 1.5 !important; }
+.n8n-card { box-shadow: none !important; }
+.n8n-button { border-radius: 6px !important; }
+.n8n-text, .n8n-heading { font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif !important; }
+/* Keep n8n attribution and node-provider logos in the workflow canvas. */

@@ -1,0 +1,14 @@
+# 泰卦服务器部署：固定兼容版本，官方 Playwright 替代需要额外授权的浏览器。
+loguru==0.7.3
+opencv-python-headless==4.12.0.88
+qrcode==8.2
+requests==2.32.3
+Flask[async]==3.1.1
+flask-cors==6.0.0
+segno>=1.6.6
+xhs>=0.2.13
+waitress>=3.0.0
+playwright==1.56.0
+Pillow>=11.0.0
+boto3>=1.35.0
+httpx==0.28.1

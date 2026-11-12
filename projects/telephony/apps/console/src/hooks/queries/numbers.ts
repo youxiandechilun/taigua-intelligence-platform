@@ -1,0 +1,91 @@
+/*
+ * 中文导读：共享基础能力的查询钩子，集中封装接口调用、查询缓存与更新状态。
+ */
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/src/lib/toast";
+
+import {
+  numbersApi,
+  type BuyNumberInput,
+  type NumberSearchParams,
+  type UpdateNumberInput,
+} from "@/src/lib/api/resources/numbers";
+import { queryKeys } from "@/src/lib/query-keys";
+
+export function useNumbers() {
+  return useQuery({
+    queryKey: queryKeys.numbers.list(),
+    queryFn: () => numbersApi.list(),
+  });
+}
+
+export function useNumberCountries(provider: NumberSearchParams["provider"], enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.numbers.countries(provider),
+    queryFn: () => numbersApi.countries(provider),
+    enabled,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+export function useNumberSearch(
+  params: NumberSearchParams | null,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: queryKeys.numbers.search(
+      params as unknown as Record<string, unknown>,
+    ),
+    queryFn: () => numbersApi.search(params!),
+    enabled: enabled && !!params,
+  });
+}
+
+export function useBuyNumber() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: BuyNumberInput) => numbersApi.buy(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.numbers.list() });
+      toast.success("号码已购买");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "无法购买号码");
+    },
+  });
+}
+
+export function useUpdateNumber() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ phId, input }: { phId: string; input: UpdateNumberInput }) =>
+      numbersApi.update(phId, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.numbers.list() });
+      qc.invalidateQueries({ queryKey: queryKeys.agents.list() });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "无法更新号码");
+    },
+  });
+}
+
+export function useReleaseNumber() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (phId: string) => numbersApi.release(phId),
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.numbers.list() }),
+        qc.invalidateQueries({ queryKey: queryKeys.agents.list() }),
+      ]);
+      toast.success("电话号码已永久释放");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "无法释放号码");
+    },
+  });
+}

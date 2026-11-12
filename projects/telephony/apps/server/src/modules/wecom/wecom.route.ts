@@ -1,0 +1,40 @@
+/*
+ * 中文导读：企业微信：wecom.route.ts。声明接口路径、中间件和处理函数。
+ */
+import {Router} from 'express';
+import {z} from 'zod';
+import authMiddleware from '../../middleware/auth.middleware.js';
+import {requirePermission,authorized} from '../../middleware/authorize.middleware.js';
+import {companyContext} from '../workspace/company-access.js';
+import {trustedOrigins} from '../../config/origins.js';
+import {ForbiddenError} from '../../common/errors/forbidden.js';
+import {BadRequestError} from '../../common/errors/badRequest.js';
+import {notifications} from './wecom.notifications.runtime.js';
+import {notificationInput} from './wecom.notifications.js';
+import {recordAuditEvent} from '../audit/audit-log.service.js';
+import {startLogin,finishLogin} from './wecom.login.js';
+import * as service from './wecom.service.js';
+const router=Router();
+router.use(authMiddleware,requirePermission({wecom:['read']}));
+router.use(authorized(async(req,res,next)=>{if(req.auth.authMethod!=='session')throw new ForbiddenError('请登录后使用企微客户联系。');if(req.get('x-workspace-id')!==req.auth.activeOrganizationId)throw new ForbiddenError('工作区已切换，请重新打开企微联系。');if(!['GET','HEAD'].includes(req.method)&&!trustedOrigins.includes(req.get('origin')||''))throw new ForbiddenError('请从系统页面操作。');const c=await companyContext(req.auth.activeOrganizationId,req.auth.userId);res.locals.scope={organizationId:req.auth.activeOrganizationId,userId:req.auth.userId,canManage:c.isSystemAdmin||c.permissions.companyMembers?.includes('update')===true};res.setHeader('Cache-Control','private, no-store');next();}));
+const send=(res:any,data:unknown)=>res.json({success:true,data});const id=z.string().uuid();
+router.post('/login/start',authorized(async(req,res)=>send(res,await startLogin(res.locals.scope,req.auth.session!.session.id))));
+router.post('/login/finish',authorized(async(req,res)=>{const p=z.object({code:z.string().min(1).max(512),state:z.string().regex(/^[A-Za-z0-9_-]{43}$/)}).strict().parse(req.body);send(res,await finishLogin(res.locals.scope,req.auth.session!.session.id,p.code,p.state));}));
+router.get('/notifications',authorized(async(_req,res)=>send(res,await notifications.get(res.locals.scope))));
+router.put('/notifications',authorized(async(req,res)=>{const p=notificationInput.parse(req.body);const result=await notifications.save(res.locals.scope,p);await recordAuditEvent({organizationId:res.locals.scope.organizationId,userId:res.locals.scope.userId,action:'wecom.notifications.saved',resourceType:'wecom',metadata:{enabled:p.enabled,recipientCount:p.recipientIds.length}});send(res,result);}));
+router.post('/notifications/preview',authorized(async(req,res)=>{const p=z.object({userId:z.string().min(1).max(100).optional(),contents:notificationInput.shape.contents.optional()}).strict().parse(req.body);send(res,await notifications.preview(res.locals.scope,p.userId,p.contents));}));
+router.get('/notifications/logs',authorized(async(req,res)=>{const page=z.coerce.number().int().min(1).max(5000).default(1).parse(req.query.page);send(res,await notifications.logs(res.locals.scope,page));}));
+router.get('/status',authorized(async(_req,res)=>send(res,await service.status(res.locals.scope))));
+router.put('/config',authorized(async(req,res)=>{const p=z.object({corpId:z.string().trim().regex(/^ww[A-Za-z0-9]{8,60}$/),agentId:z.string().trim().max(30).optional(),secret:z.string().trim().max(200).optional(),callbackToken:z.string().trim().regex(/^[A-Za-z0-9]{3,32}$/).optional(),aesKey:z.string().regex(/^[A-Za-z0-9+/]{43}$/).optional()}).strict().parse(req.body);send(res,await service.save(res.locals.scope,p));}));
+router.post('/verify',authorized(async(_req,res)=>send(res,await service.verify(res.locals.scope))));
+router.post('/callback-settings',authorized(async(_req,res)=>send(res,await service.callbackSettings(res.locals.scope))));
+router.get('/follow-users',authorized(async(_req,res)=>send(res,await service.followUsers(res.locals.scope))));
+router.get('/members',authorized(async(_req,res)=>send(res,await service.members(res.locals.scope))));
+router.put('/members',authorized(async(req,res)=>{const p=z.object({userId:z.string().min(1).max(100),wecomUserId:z.string().trim().min(1).max(100)}).strict().parse(req.body);send(res,await service.bind(res.locals.scope,p.userId,p.wecomUserId));}));
+router.get('/contact-ways',authorized(async(_req,res)=>send(res,await service.ways(res.locals.scope))));
+router.post('/contact-ways',authorized(async(req,res)=>{const p=z.object({ownerId:z.string().min(1).max(100),remark:z.string().trim().min(1).max(30)}).strict().parse(req.body);send(res,await service.createWay(res.locals.scope,p.ownerId,p.remark));}));
+router.get('/contacts',authorized(async(req,res)=>{const p=z.object({q:z.string().trim().max(100).default(''),page:z.coerce.number().int().min(1).max(5000).default(1)}).parse(req.query);send(res,await service.contacts(res.locals.scope,p.q,p.page));}));
+router.post('/contacts/sync',authorized(async(req,res)=>{const p=z.object({ownerId:z.string().min(1).max(100),cursor:z.number().int().min(0).max(100000).default(0)}).strict().parse(req.body);send(res,await service.sync(res.locals.scope,p.ownerId,p.cursor));}));
+router.post('/contacts/:id/link',requirePermission({crm:['update']}),authorized(async(req,res)=>{const p=z.object({companyId:id,contactId:id.nullable().default(null)}).strict().parse(req.body);send(res,await service.link(res.locals.scope,id.parse(req.params.id),p.companyId,p.contactId));}));
+router.use((e:any,_req:any,_res:any,next:any)=>next(e instanceof z.ZodError?new BadRequestError('填写内容格式不正确，请检查企业标识、员工和客户信息。'):e));
+export default router;

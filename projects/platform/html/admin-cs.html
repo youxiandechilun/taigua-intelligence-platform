@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>客服团队与会话 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+<style>
+.ag-card{border:1px solid var(--border);border-radius:13px;padding:15px 17px;background:var(--bg);margin-bottom:10px;transition:border-color .18s}
+.ag-card:hover{border-color:var(--border-strong)}
+.ag-card .h{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.ag-card .av{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(192,57,43,.25);display:grid;place-items:center;font-weight:600;font-size:13px}
+.ag-card .h b{font-size:14px}
+.ag-card .h .no{font-family:var(--mono);font-size:11.5px;color:var(--muted-2)}
+.ag-card .h .r{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.ag-card .m{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:10px;padding-left:47px}
+.chat-log{max-height:56vh;overflow-y:auto;border:1px solid var(--border);border-radius:12px;background:var(--bg-soft);padding:14px}
+.chat-log .m2{display:flex;gap:9px;margin-bottom:11px}
+.chat-log .m2.agent{flex-direction:row-reverse}
+.chat-log .m2 .w{font-size:11px;color:var(--muted-2);margin-bottom:3px;font-family:var(--mono)}
+.chat-log .m2.agent .w{text-align:right}
+.chat-log .m2 .t{font-size:13px;line-height:1.65;background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:9px 13px;white-space:pre-wrap;word-break:break-word;max-width:80%}
+.chat-log .m2.agent .t{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chat-log .m2.ai .t{border-color:rgba(29,78,216,.3);background:rgba(29,78,216,.05)}
+.chat-log .sys2{text-align:center;font-size:11.5px;color:var(--muted);margin:8px 0}
+</style>
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>客服团队</h1>
+          <p>管理客服工号、查看全部会话记录与回复质量</p>
+        </div>
+        <div class="right">
+          <a class="btn btn-sm" href="/html/agent-console.html" target="_blank">打开客服工作台 ↗</a>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <a class="on" onclick="setTab('team')">客服账号</a>
+        <a onclick="setTab('sessions')">会话记录</a>
+      </div>
+
+      <!-- ============ 客服账号 ============ -->
+      <div id="view-team">
+        <div class="kpi-grid" style="margin-bottom:16px">
+          <div class="kpi"><small>客服总数</small><b id="t-total">0</b></div>
+          <div class="kpi"><small>在线</small><b id="t-online">0</b></div>
+          <div class="kpi"><small>已停用</small><b id="t-off">0</b></div>
+          <div class="kpi"><small>进行中会话</small><b id="t-open">0</b></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="editAgent()">＋ 新增客服</button>
+          <button class="btn" onclick="loadAgents()">刷新</button>
+          <span style="font-size:12.5px;color:var(--muted-2)">客服使用「工号 + 密码」登录 <span class="mono">agent-login.html</span></span>
+        </div>
+        <div id="agent-list"><div class="panel"><div style="padding:20px;color:var(--muted-2);font-size:13px">加载中…</div></div></div>
+      </div>
+
+      <!-- ============ 会话记录 ============ -->
+      <div id="view-sessions" style="display:none">
+        <div class="kpi-grid" style="margin-bottom:16px">
+          <div class="kpi"><small>会话总数</small><b id="s-total">0</b></div>
+          <div class="kpi"><small>待接入</small><b id="s-pending">0</b></div>
+          <div class="kpi"><small>人工中</small><b id="s-human">0</b></div>
+          <div class="kpi"><small>AI 应答中</small><b id="s-ai">0</b></div>
+        </div>
+        <div class="toolbar">
+          <input class="inp" id="s-kw" placeholder="搜索商家 / 手机号 / 消息内容 / 会话号" onkeydown="if(event.key==='Enter')setSPage(1)" />
+          <select class="sel" id="s-status" onchange="setSPage(1)">
+            <option value="">全部状态</option>
+            <option value="pending">待接入</option>
+            <option value="human">人工中</option>
+            <option value="ai">AI 应答</option>
+            <option value="closed">已结束</option>
+          </select>
+          <button class="btn" onclick="setSPage(1)">查询</button>
+          <button class="btn" onclick="loadSessions()">刷新</button>
+        </div>
+        <div class="adm-table">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:56px">会话</th><th>商家</th><th>客服</th><th>状态</th>
+                <th>消息数</th><th>开始时间</th><th>接入时间</th><th>评分</th><th style="width:90px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="s-rows"><tr><td colspan="9" class="empty">加载中…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="s-pager"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let AGENTS = [], LIST = [], S = { page: 1, pageSize: 15, total: 0, keyword: '', status: '' };
+
+(async () => {
+  const me = await admInit('admin-cs.html');
+  if (!me) return;
+  await loadAgents();
+  await loadSessions();
+})();
+
+function setTab(t) {
+  document.querySelectorAll('#tabs a').forEach(a => a.classList.remove('on'));
+  document.querySelectorAll('#tabs a')[t === 'team' ? 0 : 1].classList.add('on');
+  $('view-team').style.display = t === 'team' ? '' : 'none';
+  $('view-sessions').style.display = t === 'sessions' ? '' : 'none';
+}
+
+/* ---------------- 客服账号 ---------------- */
+async function loadAgents() {
+  const j = await api('/api/admin/cs/agents');
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  AGENTS = j.data || [];
+  $('t-total').textContent = AGENTS.length;
+  $('t-online').textContent = AGENTS.filter(a => a.status === 'online' && !a.disabled).length;
+  $('t-off').textContent = AGENTS.filter(a => a.disabled).length;
+  $('t-open').textContent = AGENTS.reduce((s, a) => s + (a.open_sessions || 0), 0);
+  renderAgents();
+}
+
+function renderAgents() {
+  if (!AGENTS.length) {
+    $('agent-list').innerHTML = '<div class="panel"><div style="padding:30px;text-align:center;color:var(--muted-2);font-size:13px">还没有客服账号，点击「＋ 新增客服」创建</div></div>';
+    return;
+  }
+  $('agent-list').innerHTML = AGENTS.map(a => `
+    <div class="ag-card">
+      <div class="h">
+        <div class="av">${esc((a.name || '客').slice(0, 1))}</div>
+        <div>
+          <b>${esc(a.name)}</b>
+          <span class="no">${esc(a.no)}</span>
+        </div>
+        ${a.disabled ? '<span class="badge red">已停用</span>' : (a.status === 'online' ? '<span class="badge green">在线</span>' : '<span class="badge">离线</span>')}
+        ${a.role === 'supervisor' ? '<span class="badge red">主管</span>' : '<span class="badge">客服</span>'}
+        ${a.open_sessions > 0 ? `<span class="badge warn">对话中 ${a.open_sessions}</span>` : ''}
+        <div class="r">
+          <button class="btn btn-sm" onclick="editAgent(${a.id})">编辑</button>
+          <button class="btn btn-sm" onclick="resetPwd(${a.id})">重置密码</button>
+          <button class="btn btn-sm" onclick="toggleAgent(${a.id})">${a.disabled ? '启用' : '停用'}</button>
+          <button class="btn btn-sm btn-danger" onclick="delAgent(${a.id})">删除</button>
+        </div>
+      </div>
+      <div class="m">
+        <span>📱 ${esc(a.phone || '—')}</span>
+        <span>✉️ ${esc(a.email || '—')}</span>
+        <span>最近活跃：${fmtTime(a.last_active)}</span>
+        <span>创建：${fmtTime(a.created_at)}</span>
+      </div>
+    </div>`).join('');
+}
+
+function editAgent(id) {
+  const a = id ? AGENTS.find(x => x.id === id) : null;
+  openModal(`
+    <h3>${a ? '编辑客服 · ' + esc(a.name) : '新增客服'}</h3>
+    <div class="form-row">
+      <div class="field"><label>工号 <em>*</em></label>
+        <input id="a-no" value="${a ? esc(a.no) : ''}" ${a ? 'disabled' : ''} placeholder="如 CS003" />
+      </div>
+      <div class="field"><label>姓名 <em>*</em></label>
+        <input id="a-name" value="${a ? esc(a.name) : ''}" placeholder="真实姓名 / 花名" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>手机号</label><input id="a-phone" value="${a ? esc(a.phone || '') : ''}" /></div>
+      <div class="field"><label>登录密码${a ? '（留空不改）' : ' <em>*</em>'}</label>
+        <input id="a-pwd" type="password" placeholder="${a ? '留空则不修改' : '至少 6 位'}" autocomplete="off" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>邮箱</label><input id="a-email" value="${a ? esc(a.email || '') : ''}" /></div>
+      <div class="field"><label>角色</label>
+        <select id="a-role">
+          <option value="agent" ${a && a.role !== 'supervisor' ? 'selected' : ''}>客服</option>
+          <option value="supervisor" ${a && a.role === 'supervisor' ? 'selected' : ''}>客服主管（可结束他人会话）</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint">客服凭「工号 + 密码」登录独立工作台 ${'agent-login.html'}</div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveAgent(${a ? a.id : 'null'})">保存</button>
+    </div>`, true);
+}
+
+async function saveAgent(id) {
+  const body = {
+    name: $('a-name').value.trim(),
+    phone: $('a-phone').value.trim(),
+    email: $('a-email').value.trim(),
+    role: $('a-role').value,
+  };
+  const pwd = $('a-pwd').value.trim();
+  if (pwd) body.password = pwd;
+  if (!body.name) return toast('请填写姓名');
+  let j;
+  if (id) {
+    j = await api('/api/admin/cs/agents/' + id, 'PUT', body);
+  } else {
+    body.no = $('a-no').value.trim().toUpperCase();
+    if (!body.no) return toast('请填写工号');
+    if (!pwd) return toast('请设置登录密码');
+    j = await api('/api/admin/cs/agents', 'POST', body);
+  }
+  if (j.code === 0) { closeModal(); toast('已保存'); loadAgents(); }
+  else toast(j.msg || '保存失败');
+}
+
+async function resetPwd(id) {
+  const a = AGENTS.find(x => x.id === id);
+  const p = prompt(`为「${a ? a.name : ''}」设置新密码（至少 6 位）`);
+  if (!p) return;
+  if (p.trim().length < 6) return toast('密码至少 6 位');
+  const j = await api('/api/admin/cs/agents/' + id, 'PUT', { password: p.trim() });
+  if (j.code === 0) { toast('密码已重置'); loadAgents(); } else toast(j.msg || '操作失败');
+}
+
+async function toggleAgent(id) {
+  const a = AGENTS.find(x => x.id === id);
+  const next = a.disabled ? 0 : 1;
+  if (next && !confirm(`停用「${a.name}」？停用后该工号立即退出登录且无法登录。`)) return;
+  const j = await api('/api/admin/cs/agents/' + id, 'PUT', { disabled: next });
+  if (j.code === 0) { toast(next ? '已停用' : '已启用'); loadAgents(); } else toast(j.msg || '操作失败');
+}
+
+async function delAgent(id) {
+  const a = AGENTS.find(x => x.id === id);
+  if (!confirm(`删除客服「${a ? a.name + '（' + a.no + '）' : id}」？其进行中的会话会转回公共池。`)) return;
+  const j = await api('/api/admin/cs/agents/' + id, 'DELETE');
+  if (j.code === 0) { toast('已删除'); loadAgents(); loadSessions(); } else toast(j.msg || '删除失败');
+}
+
+/* ---------------- 会话记录 ---------------- */
+async function loadSessions() {
+  const q = new URLSearchParams({
+    page: S.page, pageSize: S.pageSize,
+    status: S.status, keyword: S.keyword,
+  });
+  const j = await api('/api/admin/cs/sessions?' + q);
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  LIST = j.data.list || [];
+  S.total = j.data.total;
+  $('s-total').textContent = S.total;
+  $('s-pending').textContent = j.data.counts.pending || 0;
+  $('s-human').textContent = j.data.counts.human || 0;
+  $('s-ai').textContent = j.data.counts.ai || 0;
+  renderSessions();
+  renderPager($('s-pager'), S.total, S.page, S.pageSize, setSPage);
+}
+
+function stBadge(s) {
+  if (s === 'pending') return '<span class="badge warn">待接入</span>';
+  if (s === 'human') return '<span class="badge green">人工中</span>';
+  if (s === 'ai') return '<span class="badge">AI 应答</span>';
+  if (s === 'closed') return '<span class="badge">已结束</span>';
+  return '<span class="badge">' + esc(s) + '</span>';
+}
+
+function renderSessions() {
+  const rows = $('s-rows');
+  if (!LIST.length) { rows.innerHTML = '<tr><td colspan="9" class="empty">没有符合条件的会话</td></tr>'; return; }
+  rows.innerHTML = LIST.map(s => `
+    <tr>
+      <td class="mono">#${s.id}</td>
+      <td>
+        <div style="font-weight:500">${esc(s.company || ('商家 #' + s.merchant_id))}</div>
+        <div class="small muted mono">${esc(s.phone || '')}</div>
+      </td>
+      <td>${s.agent_name ? esc(s.agent_name) : '<span class="muted">—</span>'}</td>
+      <td>${stBadge(s.status)}</td>
+      <td class="small muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.last_msg || '—')}</td>
+      <td class="small mono">${fmtTime(s.created_at)}</td>
+      <td class="small mono">${s.claimed_at ? fmtTime(s.claimed_at) : '—'}</td>
+      <td>${s.rating ? '★'.repeat(s.rating) : '<span class="muted">—</span>'}</td>
+      <td><button class="btn btn-sm" onclick="openSession(${s.id})">查看</button></td>
+    </tr>`).join('');
+}
+
+function setSPage(p) {
+  S.page = Math.max(1, p);
+  S.keyword = $('s-kw').value.trim();
+  S.status = $('s-status').value;
+  loadSessions();
+}
+
+async function openSession(id) {
+  const j = await api('/api/admin/cs/sessions/' + id);
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  const s = j.data.session, ms = j.data.messages || [];
+  const m = s.merchant || {};
+  const html = `
+    <div class="list-row"><span>商家</span><b>${esc(m.company || '—')}</b></div>
+    <div class="list-row"><span>联系人 / 手机</span><b>${esc(m.contact || '—')} / ${esc(m.phone || '—')}</b></div>
+    <div class="list-row"><span>状态</span><b>${stBadge(s.status)}</b></div>
+    <div class="list-row"><span>接入客服</span><b>${s.agent ? esc(s.agent.name + '（' + s.agent.no + '）') : '未接入'}</b></div>
+    <div class="list-row"><span>开始 / 接入 / 结束</span><b style="font-size:12px">${fmtTime(s.created_at)} · ${fmtTime(s.claimed_at)} · ${fmtTime(s.closed_at)}</b></div>
+    <div class="list-row"><span>客户评分</span><b>${s.rating ? '★'.repeat(s.rating) : '未评价'}</b></div>
+    <div style="height:14px"></div>
+    <div class="chat-log">
+      ${ms.map(x => {
+        if (x.sender === 'system') return `<div class="sys2">${esc(x.content)}</div>`;
+        const cls = x.sender === 'agent' ? 'agent' : (x.sender === 'ai' ? 'ai' : '');
+        const who = x.sender === 'user' ? (m.company || '客户') : (x.sender === 'ai' ? 'AI 客服' : (s.agent ? s.agent.name : '客服'));
+        return `<div class="m2 ${cls}"><div><div class="w">${esc(who)} · ${fmtTime(x.created_at)}</div><div class="t">${esc(x.content)}</div></div></div>`;
+      }).join('') || '<div class="sys2">无消息</div>'}
+    </div>`;
+  openDrawer('会话 #' + s.id + ' · ' + (m.company || ''), html);
+}
+</script>
+</body>
+</html>

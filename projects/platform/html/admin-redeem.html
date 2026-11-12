@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>兑换码管理 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+<style>
+/* 面额选择卡 */
+.den-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-bottom:6px}
+.den{
+  border:1px solid var(--border);border-radius:11px;padding:10px 12px;cursor:pointer;
+  background:var(--bg-soft);transition:all .16s;position:relative;
+}
+.den:hover{border-color:var(--border-strong)}
+.den.on{border-color:var(--accent);background:var(--accent-soft)}
+.den .p{font-size:15px;font-weight:700;font-family:var(--mono)}
+.den .d{font-size:11.5px;color:var(--muted);margin-top:2px}
+.den.on .p{color:var(--accent)}
+/* 卡密展示 */
+.code-box{
+  background:var(--bg-soft);border:1px solid var(--border);border-radius:11px;
+  padding:12px;max-height:290px;overflow-y:auto;font-family:var(--mono);font-size:13px;
+  line-height:2;letter-spacing:.02em;
+}
+.code-box .c{display:block;padding:0 4px}
+.code-box .c:hover{background:var(--panel);border-radius:5px}
+.row-act{display:flex;gap:4px;flex-wrap:wrap}
+.mono-c{font-family:var(--mono);font-size:12.5px;letter-spacing:.03em}
+</style>
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>兑换码管理</h1>
+          <p>批量生成点卡兑换码，商家在「TOKEN 充值」页输入卡密即可自助兑换点数</p>
+        </div>
+        <div class="right">
+          <button class="btn btn-sm" onclick="exportCsv()">导出 CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openGenerate()">＋ 生成点卡</button>
+        </div>
+      </div>
+
+      <div class="mini-row">
+        <div class="mini"><div class="l">未使用卡密</div><div class="n" id="m-unused">—</div></div>
+        <div class="mini"><div class="l">未使用面值合计</div><div class="n" id="m-unused-points">—</div></div>
+        <div class="mini"><div class="l">已兑换卡密</div><div class="n" id="m-used" style="color:var(--ok)">—</div></div>
+        <div class="mini"><div class="l">已兑换点数</div><div class="n" id="m-used-points">—</div></div>
+        <div class="mini"><div class="l">已作废</div><div class="n" id="m-void" style="color:var(--accent)">—</div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="grow">
+          <input id="kw" class="inp" placeholder="搜索卡密 / 商家 / 批次 / 备注（输入即搜）" oninput="kwDebounce()" />
+        </div>
+        <select class="sel" id="st-sel" onchange="setPage(1)">
+          <option value="">全部状态</option>
+          <option value="unused">未使用</option>
+          <option value="used">已使用</option>
+          <option value="void">已作废</option>
+        </select>
+        <select class="sel" id="batch-sel" onchange="setPage(1)"><option value="">全部批次</option></select>
+        <button class="btn" onclick="setPage(1)">查询</button>
+        <button class="btn" onclick="resetFilter()">重置</button>
+        <button class="btn btn-danger" id="btn-batch-del" onclick="batchDel()" disabled>批量删除</button>
+      </div>
+
+      <div class="adm-table">
+        <table>
+          <thead><tr>
+            <th style="width:36px"><input type="checkbox" id="chk-all" onchange="toggleAll(this.checked)" /></th>
+            <th style="width:180px">卡密</th>
+            <th style="width:110px">点卡面值</th>
+            <th style="width:90px">售价</th>
+            <th style="width:120px">批次</th>
+            <th style="width:80px">状态</th>
+            <th style="width:150px">使用商家</th>
+            <th style="width:120px">使用时间</th>
+            <th style="width:110px">有效期至</th>
+            <th style="width:150px">操作</th>
+          </tr></thead>
+          <tbody id="rows"><tr><td colspan="10" class="empty">加载中…</td></tr></tbody>
+        </table>
+      </div>
+      <div id="pager"></div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+const S = { page: 1, pageSize: 15, status: '', batch: '', keyword: '', total: 0 };
+let SELECTED = new Set();   // 勾选待批量删除的 id（跨页保留）
+let PRESETS = [], CACHE = [];
+const f = id => document.getElementById(id);
+
+(async () => {
+  const me = await admInit('admin-redeem.html');
+  if (!me) return;
+  load();
+})();
+
+function setPage(p) {
+  S.page = p;
+  S.status = f('st-sel').value;
+  S.batch = f('batch-sel').value;
+  S.keyword = f('kw').value.trim();
+  load();
+}
+function resetFilter() {
+  f('st-sel').value = ''; f('batch-sel').value = ''; f('kw').value = '';
+  setPage(1);
+}
+
+function stateBadge(s) {
+  if (s === 'unused') return '<span class="badge green">未使用</span>';
+  if (s === 'used') return '<span class="badge">已使用</span>';
+  if (s === 'void') return '<span class="badge red">已作废</span>';
+  if (s === 'expired') return '<span class="badge warn">已过期</span>';
+  return '<span class="badge">' + esc(s) + '</span>';
+}
+
+async function load() {
+  const qs = new URLSearchParams({ page: S.page, pageSize: S.pageSize });
+  if (S.status) qs.set('status', S.status);
+  if (S.batch) qs.set('batch', S.batch);
+  if (S.keyword) qs.set('keyword', S.keyword);
+
+  const j = await api('/api/admin/redeem-codes?' + qs.toString());
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  const d = j.data;
+  S.total = d.total;
+  CACHE = d.list;
+  PRESETS = d.presets || [];
+
+  const st = d.stats || {};
+  f('m-unused').textContent = num(st.unused);
+  f('m-unused-points').textContent = num(st.unused_points);
+  f('m-used').textContent = num(st.used);
+  f('m-used-points').textContent = num(st.used_points);
+  f('m-void').textContent = num(st.void);
+
+  // 批次下拉
+  const bs = f('batch-sel');
+  const keep = bs.value;
+  bs.innerHTML = '<option value="">全部批次</option>' +
+    (d.batches || []).map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  bs.value = keep;
+
+  const body = f('rows');
+  if (!d.list.length) {
+    const filtered = S.status || S.batch || S.keyword;
+    body.innerHTML = '<tr><td colspan="10" class="empty">' +
+      (filtered ? '没有符合当前筛选条件的兑换码' : '还没有兑换码，点右上角「生成点卡」开始') + '</td></tr>';
+  } else {
+    body.innerHTML = d.list.map(r => {
+      let acts = '';
+      if (r.state === 'unused') acts += `<button class="btn btn-sm" onclick="setStatus(${r.id},'void')">作废</button>`;
+      if (r.status !== 'used') acts += `${acts ? ' ' : ''}<button class="btn btn-sm btn-danger" onclick="delCode(${r.id},'${esc(r.code_fmt)}')">删除</button>`;
+      return `<tr>
+        <td>${r.status === 'used' ? '' : `<input type="checkbox" ${SELECTED.has(r.id) ? 'checked' : ''} onchange="pickOne(${r.id}, this.checked)" />`}</td>
+        <td class="mono-c">${esc(r.code_fmt)}</td>
+        <td class="mono" style="font-weight:600">${num(r.points)} 点</td>
+        <td class="mono small" style="color:var(--muted)">${r.price ? '￥' + r.price : '—'}</td>
+        <td class="mono small">${esc(r.batch || '—')}</td>
+        <td>${stateBadge(r.state)}</td>
+        <td class="small">${r.merchant_name ? esc(r.merchant_name) : '<span class="muted">—</span>'}</td>
+        <td class="mono small">${r.used_at ? fmtTime(r.used_at) : '—'}</td>
+        <td class="mono small">${r.expire_at ? r.expire_at.slice(0, 10) : '永久'}</td>
+        <td><div class="row-act">${acts}</div></td>
+      </tr>`;
+    }).join('');
+  }
+  renderPager(f('pager'), S.total, S.page, S.pageSize, setPage);
+  syncSelection();
+  loadBadges();
+}
+
+/* ---------------- 勾选与批量删除 ---------------- */
+function pickOne(id, on) {
+  if (on) SELECTED.add(id); else SELECTED.delete(id);
+  syncSelection();
+}
+function toggleAll(on) {
+  CACHE.forEach(r => { if (r.status !== 'used') { if (on) SELECTED.add(r.id); else SELECTED.delete(r.id); } });
+  document.querySelectorAll('#rows input[type="checkbox"]').forEach(el => { if (!el.disabled) el.checked = on; });
+  syncSelection();
+}
+function syncSelection() {
+  const delable = CACHE.filter(r => r.status !== 'used');
+  const allOn = delable.length > 0 && delable.every(r => SELECTED.has(r.id));
+  const allBox = f('chk-all');
+  if (allBox) allBox.checked = allOn;
+  const n = SELECTED.size;
+  const btn = f('btn-batch-del');
+  btn.disabled = n === 0;
+  btn.textContent = n ? `批量删除（已选 ${n}）` : '批量删除';
+}
+async function batchDel() {
+  const ids = [...SELECTED];
+  if (!ids.length) return toast('请先勾选要删除的兑换码');
+  if (!confirm(`确定删除选中的 ${ids.length} 张点卡吗？\n（已兑换的会自动跳过，删除后不可恢复）`)) return;
+  const j = await api('/api/admin/redeem-codes/batch-delete', 'POST', { ids });
+  toast(j.msg || (j.code === 0 ? '已删除' : '删除失败'));
+  if (j.code === 0) { SELECTED.clear(); load(); }
+}
+
+/* ---------------- 关键词防抖即时搜索 ---------------- */
+let KW_TIMER = null;
+function kwDebounce() {
+  clearTimeout(KW_TIMER);
+  KW_TIMER = setTimeout(() => setPage(1), 400);
+}
+
+function copyOne(c) { copyText(c); }
+
+async function setStatus(id, act) {
+  const label = act === 'void' ? '作废' : '恢复';
+  if (!confirm('确定要' + label + '这张点卡吗？')) return;
+  const j = await api('/api/admin/redeem-codes/' + id + '/' + act, 'POST', {});
+  toast(j.msg || (j.code === 0 ? '操作成功' : '操作失败'));
+  if (j.code === 0) load();
+}
+
+async function delCode(id, code) {
+  if (!confirm('删除后不可恢复，确定删除点卡 ' + code + ' 吗？\n（已使用的卡密不允许删除，以便追溯资金流水）')) return;
+  const j = await api('/api/admin/redeem-codes/' + id, 'DELETE');
+  toast(j.msg || (j.code === 0 ? '已删除' : '删除失败'));
+  if (j.code === 0) load();
+}
+
+/* ---------------- 生成点卡 ---------------- */
+let PICKED = 3;   // 默认选中第 4 档
+
+function openGenerate() {
+  PICKED = PRESETS.length > 3 ? 3 : 0;
+  openModal(`<h3>生成点卡兑换码</h3>
+    <div class="field">
+      <label>点卡面额 <em>*</em></label>
+      <div class="den-grid" id="den-grid"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>每张点数 <em>*</em></label><input id="g-points" type="number" min="1" /></div>
+      <div class="field"><label>对应售价（元）</label><input id="g-price" type="number" min="0" step="0.01" /></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>生成数量 <em>*</em></label><input id="g-count" type="number" value="10" min="1" max="500" /></div>
+      <div class="field"><label>有效期</label>
+        <select id="g-expire">
+          <option value="0">永久有效</option>
+          <option value="7">7 天</option>
+          <option value="30" selected>30 天</option>
+          <option value="90">90 天</option>
+          <option value="365">1 年</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>备注</label><input id="g-remark" maxlength="100" placeholder="如：双十一活动赠卡 / 渠道 A 分销" /></div>
+    <div class="hint">卡密为 16 位（TK + 14 位），自动去重；生成后在弹窗中可一键复制或导出该批次。</div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doGenerate()">生成</button>
+    </div>`);
+  renderDens();
+  pickPreset(PICKED);
+}
+
+function renderDens() {
+  const grid = f('den-grid');
+  if (!grid) return;
+  grid.innerHTML = (PRESETS.length ? PRESETS : [
+    { price: 10, points: 1000 }, { price: 30, points: 3200 }, { price: 50, points: 5500 },
+    { price: 100, points: 11500 }, { price: 300, points: 36000 }, { price: 500, points: 62000 },
+  ]).map((p, i) => `<div class="den" data-i="${i}" onclick="pickPreset(${i})">
+      <div class="p">${p.points} 点</div>
+      <div class="d">售价 ￥${p.price}</div>
+    </div>`).join('') + `<div class="den" data-i="-1" onclick="pickPreset(-1)">
+      <div class="p">自定义</div>
+      <div class="d">手动填写面额</div>
+    </div>`;
+}
+
+function pickPreset(i) {
+  PICKED = i;
+  document.querySelectorAll('.den').forEach(el => el.classList.toggle('on', Number(el.dataset.i) === i));
+  if (i >= 0 && PRESETS[i]) {
+    f('g-points').value = PRESETS[i].points;
+    f('g-price').value = PRESETS[i].price;
+  } else {
+    f('g-points').focus();
+  }
+}
+
+async function doGenerate() {
+  const points = parseInt(f('g-points').value || '0', 10);
+  const price = parseFloat(f('g-price').value || '0');
+  const count = parseInt(f('g-count').value || '0', 10);
+  if (!points || points <= 0) return toast('请填写每张点数');
+  if (!count || count < 1) return toast('请填写生成数量');
+  if (count > 500) return toast('单次最多生成 500 张');
+
+  const j = await api('/api/admin/redeem-codes/generate', 'POST', {
+    points, price: isNaN(price) ? 0 : price, count,
+    expire_days: Number(f('g-expire').value),
+    remark: f('g-remark').value.trim(),
+  });
+  if (j.code !== 0) return toast(j.msg || '生成失败');
+  showGenerated(j.data);
+  load();
+}
+
+function showGenerated(d) {
+  const codes = d.codes || [];
+  openModal(`<h3>已生成 ${codes.length} 张点卡</h3>
+    <div class="hint" style="margin-bottom:12px">
+      面额 <b>${num(d.points)} 点</b>／张 · 批次 <b class="mono">${esc(d.batch)}</b>
+      ${d.price ? '· 售价 ￥' + d.price : ''}
+    </div>
+    <div class="code-box" id="code-box">${codes.map(c => `<span class="c">${esc(c)}</span>`).join('')}</div>
+    <div class="hint" style="margin-top:10px">请及时复制或导出保存，卡密在列表中可随时查询。</div>
+    <div class="modal-foot">
+      <button class="btn" onclick="exportCsv('${esc(d.batch)}')">导出该批次</button>
+      <button class="btn btn-primary" onclick="copyAll()">复制全部卡密</button>
+    </div>`, true);
+  window.__lastCodes = codes;
+}
+
+function copyAll() {
+  const codes = window.__lastCodes || [];
+  if (!codes.length) return toast('没有可复制的卡密');
+  copyText(codes.join('\n'));
+}
+
+/* ---------------- 导出 ---------------- */
+function exportCsv(batch) {
+  const qs = new URLSearchParams({ token: TOKEN });
+  if (batch) qs.set('batch', batch);
+  else {
+    if (S.status) qs.set('status', S.status);
+    if (S.batch) qs.set('batch', S.batch);
+  }
+  window.open('/api/admin/redeem-codes/export?' + qs.toString(), '_blank');
+  toast('正在导出 CSV…');
+}
+</script>
+</body>
+</html>

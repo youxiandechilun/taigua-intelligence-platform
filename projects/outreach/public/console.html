@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>泰卦外贸 · 私信拓客系统</title>
+<link rel="icon" type="image/png" href="logo.png" />
+<link rel="stylesheet" href="console.css" />
+</head>
+<body>
+
+<div class="console">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand">
+      <img class="logo-full" src="logo-full.png" alt="TAIKUA·泰卦智能" />
+    </div>
+
+    <div class="env-band glb"><i></i>海外市场<span>GLOBAL</span></div>
+
+    <div class="side-scroll" id="nav"></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menu-btn" aria-label="菜单">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="crumb" id="crumb"></div>
+      <div class="right">
+        <span class="tag-env glb">海外</span>
+        <button class="icon-btn" id="theme-btn" aria-label="主题">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="main-inner" id="view"></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="console.js"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+#!/usr/bin/env node
+/*
+ * 中文导读：维护与构建工具：check-seo-campaign.mjs。按文件内参数执行对应操作，运行前先核对目标环境。
+ */
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
+import {
+  computeContentHash,
+  isValidEvidenceReview,
+} from "../apps/web/src/lib/blog-review.mjs";
+import { findUnreviewedScheduledPosts } from "../apps/web/src/lib/blog-schedule.mjs";
+
+// A published post without a valid evidence review is live for readers but
+// noindex for search engines: that fails the check. Posts whose date falls
+// within this many days are reported as warnings so the review can land in time.
+const REVIEW_WINDOW_DAYS = 7;
+
+const root = fileURLToPath(new URL("../", import.meta.url));
+const require = createRequire(
+  new URL("../apps/web/package.json", import.meta.url),
+);
+const matter = require("gray-matter");
+const routes = [
+  "",
+  "solutions/ai-receptionist",
+  "solutions/ai-answering-service",
+  "use-cases/appointment-scheduling",
+  "use-cases/customer-support",
+  "use-cases/sales-lead-gen",
+  "industries/real-estate",
+  "industries/hr-recruiting",
+  "industries/saas",
+  "industries/automotive",
+  "pricing",
+  "company/contact",
+  "company/about-us",
+  "company/careers",
+  "open-source",
+  "resources",
+  "resources/property-management-call-intake",
+  "blog",
+  "blog/[slug]",
+  "case-studies",
+  "case-studies/[slug]",
+  "compliance/hipaa",
+  "industries/e-commerce",
+  "industries/education",
+  "industries/financial-services",
+  "industries/healthcare",
+  "industries/logistics",
+  "industries/manufacturing-engineering",
+  "industries",
+  "industries/travel-hospitality",
+  "privacy-policy",
+  "solutions",
+  "terms-of-service",
+  "use-cases/operations-automation",
+  "use-cases/order-status-returns",
+  "use-cases",
+  "use-cases/reminders-collections",
+];
+const selected = new Set([
+  "free-ai-appointment-scheduling-tools",
+  "best-ai-voice-agent-platforms-2026",
+  "ai-appointment-scheduling-guide",
+  "ai-phone-answering-service-small-business",
+  "automated-appointment-reminders-guide",
+  "ai-voice-agents-reduce-customer-support-costs",
+  "ai-voice-agents-b2b-lead-qualification",
+  "ai-voice-agents-property-management",
+  "property-management-answering-services",
+  "after-hours-leasing-call-handling",
+  "property-management-answering-service-cost",
+  "property-management-phone-agent-integration-checklist",
+  "build-ai-voice-agent-small-business",
+  "ai-voice-agent-security-data-privacy",
+  "retell-ai-alternatives",
+  "vapi-alternatives",
+]);
+const files = new Set();
+
+function visit(file) {
+  if (files.has(file)) return;
+  files.add(file);
+  const source = readFileSync(file, "utf8");
+  // Follow static local module references, including Next's literal dynamic imports.
+  for (const match of source.matchAll(
+    /(?:from\s*|import\s*\(\s*|import\s*)["']([^"']+)["']/g,
+  )) {
+    const ref = match[1];
+    const base = ref.startsWith("@/data/")
+      ? resolve(root, "apps/web/data", ref.slice(7))
+      : ref.startsWith("@/")
+        ? resolve(root, "apps/web/src", ref.slice(2))
+        : ref.startsWith(".")
+          ? resolve(dirname(file), ref)
+          : null;
+    if (!base) continue;
+    const dependency = [
+      base,
+      `${base}.ts`,
+      `${base}.tsx`,
+      `${base}.mjs`,
+      join(base, "index.ts"),
+      join(base, "index.tsx"),
+    ].find(
+      (path) =>
+        /\.(?:tsx?|mjs)$/.test(path) &&
+        existsSync(path) &&
+        statSync(path).isFile(),
+    );
+    if (dependency) visit(dependency);
+  }
+}
+
+try {
+  for (const route of routes)
+    visit(resolve(root, "apps/web/src/app", route, "page.tsx"));
+  visit(resolve(root, "apps/web/src/app/layout.tsx"));
+  for (const industry of [
+    "hr-recruiting",
+    "saas",
+    "automotive",
+    "e-commerce",
+    "education",
+    "logistics",
+    "manufacturing-engineering",
+    "travel-hospitality",
+  ])
+    visit(resolve(root, "apps/web/content/industries", `${industry}.md`));
+  for (const useCase of [
+    "operations-automation",
+    "order-status-returns",
+    "reminders-collections",
+  ])
+    visit(resolve(root, "apps/web/content/use-cases", `${useCase}.md`));
+  const resourcesPage = resolve(root, "apps/web/src/app/resources/page.tsx");
+  if (existsSync(resourcesPage)) visit(resourcesPage);
+  const scenariosDirectory = resolve(root, "apps/web/content/case-studies");
+  for (const name of readdirSync(scenariosDirectory).filter((name) =>
+    name.endsWith(".md"),
+  ))
+    visit(join(scenariosDirectory, name));
+  const contentDirectory = resolve(root, "apps/web/content/blog");
+  const found = new Set();
+  const scheduled = [];
+  for (const name of readdirSync(contentDirectory).filter((name) =>
+    name.endsWith(".md"),
+  )) {
+    const file = join(contentDirectory, name);
+    const { data, content } = matter(readFileSync(file, "utf8"));
+    scheduled.push({
+      ...data,
+      file,
+      contentHash: computeContentHash(data, content),
+    });
+    if (!selected.has(data.slug) && !data.evidenceReview) continue;
+    if (
+      !isValidEvidenceReview(
+        data.evidenceReview,
+        computeContentHash(data, content),
+      )
+    ) {
+      throw new Error(
+        `Article needs a current source review: ${relative(root, file)}`,
+      );
+    }
+    found.add(data.slug);
+    files.add(file);
+  }
+  for (const slug of selected)
+    if (!found.has(slug)) throw new Error(`Missing campaign article: ${slug}`);
+  const due = findUnreviewedScheduledPosts(scheduled, {
+    windowDays: REVIEW_WINDOW_DAYS,
+  });
+  const describe = (entry) =>
+    `  ${relative(root, entry.file)} [${entry.slug ?? "no slug"}] dated ${entry.date}: ${entry.reason}`;
+  const upcoming = due.filter((entry) => !entry.pastDue);
+  if (upcoming.length > 0) {
+    process.stderr.write(
+      [
+        `SEO campaign warning: ${upcoming.length} scheduled article(s) within ${REVIEW_WINDOW_DAYS} days still need an evidence review (they will go live as noindex):`,
+        ...upcoming.map(describe),
+        "Complete the factual review and run scripts/review-seo-article.mjs, or move the date / set draft: true.",
+        "",
+      ].join("\n"),
+    );
+  }
+  const pastDue = due.filter((entry) => entry.pastDue);
+  if (pastDue.length > 0) {
+    throw new Error(
+      [
+        "Published articles are live but noindex because they have no valid evidence review:",
+        ...pastDue.map(describe),
+        "Complete the factual review and run scripts/review-seo-article.mjs for each file, or move the date forward / set draft: true.",
+      ].join("\n"),
+    );
+  }
+  const result = spawnSync(
+    process.execPath,
+    [
+      resolve(root, "scripts/audit-public-claims.mjs"),
+      ...process.argv.slice(2),
+      ...[...files].flatMap((file) => ["--target", relative(root, file)]),
+    ],
+    { cwd: root, encoding: "utf8" },
+  );
+  process.stdout.write(result.stdout ?? "");
+  process.stderr.write(result.stderr ?? "");
+  if (result.error) throw result.error;
+  process.exitCode = result.status ?? 1;
+} catch (error) {
+  process.stderr.write(`SEO campaign check failed: ${error.message}\n`);
+  process.exitCode = 1;
+}

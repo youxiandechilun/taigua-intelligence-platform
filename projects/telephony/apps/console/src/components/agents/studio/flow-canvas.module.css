@@ -1,0 +1,444 @@
+/*
+ * 中文导读：数字员工与话术的 flow-canvas.module 组件，封装该界面的展示与交互。
+ */
+.studio {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.full {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  height: 100dvh;
+}
+
+.inline {
+  height: max(540px, calc(100dvh - 250px));
+}
+
+.toolbar,
+.palette {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding: 10px 16px;
+}
+
+.toolbar {
+  min-height: 58px;
+  justify-content: space-between;
+}
+
+.viewSwitch {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  border-radius: 7px;
+  background: var(--muted);
+  padding: 3px;
+}
+
+.globalPanel {
+  z-index: 10;
+  display: flex;
+  width: min(400px, 42%);
+  min-width: 300px;
+  flex-shrink: 0;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--card);
+}
+
+.palette {
+  gap: 8px;
+  min-height: 52px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  flex-shrink: 0;
+  background: var(--border);
+}
+
+.motionToggle {
+  border-radius: 5px;
+  padding: 7px 9px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.motionToggle:hover {
+  background: var(--muted);
+}
+
+.workspace {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.edgeActions {
+  position: absolute;
+  z-index: 8;
+  top: 12px;
+  left: 50%;
+  display: flex;
+  max-width: calc(100% - 24px);
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  padding: 7px 10px;
+  box-shadow: 0 3px 12px #14284016;
+}
+
+.edgeActions > span { max-width: 220px; }
+
+.directory {
+  z-index: 2;
+  display: flex;
+  width: 200px;
+  flex-shrink: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  background: var(--card);
+  padding: 14px 12px;
+  scrollbar-width: thin;
+}
+
+.directoryList {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 1px;
+  scrollbar-width: thin;
+}
+
+.directoryRow {
+  position: relative;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--background);
+}
+
+.directoryItem {
+  display: block;
+  width: 100%;
+  border-radius: inherit;
+  background: transparent;
+  padding: 11px 33px 11px 11px;
+  text-align: left;
+}
+
+.directoryItem strong {
+  display: block;
+  margin-top: 8px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directoryRow:hover {
+  border-color: var(--primary);
+}
+
+.directoryItem:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.directoryDelete {
+  position: absolute;
+  top: 5px;
+  right: 3px;
+  width: 25px;
+  height: 25px;
+  color: var(--muted-foreground);
+}
+
+.directoryDelete:hover {
+  background: color-mix(in srgb, var(--destructive) 8%, transparent);
+  color: var(--destructive);
+}
+
+.directorySelected {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.surface {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+  isolation: isolate;
+}
+
+.surface :global(.react-flow__viewport) {
+  will-change: transform;
+}
+
+.surface :global(.react-flow__node) {
+  transition: none !important;
+}
+
+.travelDot {
+  offset-distance: 0%;
+  animation: flowTravel var(--travel-duration, 4s) linear infinite;
+  opacity: 0.46;
+}
+
+.surface[data-motion='off'] .travelDot {
+  display: none;
+}
+
+.surface[data-moving] .travelDot {
+  visibility: hidden;
+  animation-play-state: paused;
+}
+
+.solidEdge :global(.react-flow__edge-path),
+.dashedEdge :global(.react-flow__edge-path) {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.solidEdge :global(.react-flow__edge-path) { stroke-dasharray: none; }
+.dashedEdge :global(.react-flow__edge-path) { stroke-dasharray: 6 6; }
+
+.lineLegend {
+  display: flex;
+  gap: 14px;
+  margin: 0 0 26px 18px !important;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+  padding: 8px 11px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  pointer-events: none;
+}
+.lineLegend span { display: flex; align-items: center; gap: 6px; }
+.lineLegend i { width: 22px; border-top: 2px solid #718399; }
+.lineLegend .legendDashed { border-top-style: dashed; }
+
+.portHandle {
+  z-index: 3;
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  min-height: 12px !important;
+  border: 2px solid var(--card) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+.portLabel {
+  position: absolute;
+  width: max-content;
+  max-width: 130px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--card);
+  padding: 2px 5px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.portLabel[data-side='bottom'] { bottom: 13px; left: 50%; max-width: 62px; transform: translateX(-50%); }
+.portLabel[data-side='top'] { bottom: 13px; left: 50%; max-width: 62px; transform: translateX(-50%); }
+.portLabel[data-side='left'] { right: 17px; top: 50%; transform: translateY(-50%); }
+.portLabel[data-side='right'] { left: 17px; top: 50%; transform: translateY(-50%); }
+
+.portControl {
+  position: absolute;
+  z-index: 8;
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--card);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+  cursor: grab;
+  touch-action: none;
+}
+.portControl:active { cursor: grabbing; }
+.portControl:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.portName {
+  position: absolute;
+  width: max-content;
+  max-width: 130px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card);
+  padding: 3px 6px;
+  color: var(--foreground);
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.portName[data-side='top'] { bottom: 22px; left: 50%; transform: translateX(-50%); }
+.portName[data-side='bottom'] { bottom: 22px; left: 50%; max-width: 62px; transform: translateX(-50%); }
+.portName[data-side='left'] { right: 22px; top: 50%; transform: translateY(-50%); }
+.portName[data-side='right'] { left: 22px; top: 50%; transform: translateY(-50%); }
+
+.surface :global(.react-flow__edge-textbg) {
+  fill: var(--card);
+  fill-opacity: 0.95;
+}
+
+.node {
+  position: relative;
+  contain: layout style;
+  width: 360px;
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--foreground) 17%, var(--card));
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 3px 8px #14284012;
+}
+
+.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 16%, transparent), 0 3px 8px #14284012;
+}
+
+.nodeHeading {
+  display: flex;
+  min-height: 43px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.entryBadge {
+  margin-left: auto;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  padding: 2px 7px;
+  color: var(--primary);
+  font-size: 11px;
+}
+
+.nodeBody {
+  min-height: 126px;
+  padding: 14px 16px 16px;
+}
+
+.nodeBody strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.nodeBody p {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 22px;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
+.branches {
+  min-height: 43px;
+  border-top: 1px solid var(--border);
+}
+
+.canvasHint {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  padding: 6px 10px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 20px !important;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  padding: 6px;
+  box-shadow: 0 3px 12px #14284012;
+}
+
+.zoomValue {
+  min-width: 48px;
+  padding: 6px 2px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.footer {
+  display: flex;
+  min-height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  padding: 6px 16px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+@keyframes flowTravel {
+  to { offset-distance: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travelDot { display: none; }
+}
+
+@media (max-width: 760px) {
+  .toolbar { flex-wrap: wrap; gap: 8px; padding: 8px 10px; }
+  .directory { width: 142px; padding: 10px 8px; }
+  .directoryItem { padding: 10px 8px; }
+  .canvasHint, .lineLegend { display: none; }
+  .navigation { gap: 0; padding: 4px; }
+  .footer { padding-inline: 10px; }
+  .globalPanel { position: absolute; inset: 0; width: 100%; min-width: 0; border-left: 0; }
+  .viewSwitch { order: 3; }
+}
+
+@media (max-width: 1280px) {
+  .toolbar { flex-wrap: wrap; gap: 8px; }
+}

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>操作日志 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>操作日志</h1>
+          <p>记录所有管理动作：审核、点数调整、账号与公告变更等，便于追溯</p>
+        </div>
+        <div class="right">
+          <button class="btn btn-sm" onclick="load()">刷新</button>
+        </div>
+      </div>
+
+      <div class="adm-table">
+        <table>
+          <thead><tr>
+            <th style="width:66px">ID</th><th>操作</th><th>对象</th><th>详情</th>
+            <th>操作人</th><th>IP</th><th>时间</th>
+          </tr></thead>
+          <tbody id="rows"><tr><td colspan="7" class="empty">加载中…</td></tr></tbody>
+        </table>
+      </div>
+      <div id="pager"></div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+let PAGE = 1;
+const SIZE = 20;
+const $ = id => document.getElementById(id);
+
+(async () => {
+  const me = await admInit('admin-logs.html');
+  if (!me) return;
+  load();
+})();
+
+async function load() {
+  const j = await api(`/api/admin/logs?page=${PAGE}&pageSize=${SIZE}`);
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  const d = j.data;
+  const body = $('rows');
+  if (!d.list.length) body.innerHTML = '<tr><td colspan="7" class="empty">暂无日志记录</td></tr>';
+  else body.innerHTML = d.list.map(l => `
+    <tr>
+      <td class="mono small">${l.id}</td>
+      <td><b>${esc(l.action)}</b></td>
+      <td class="small">${esc(l.target || '—')}</td>
+      <td class="small muted">${esc(l.detail || '—')}</td>
+      <td class="small">${esc(l.admin_name || '—')}</td>
+      <td class="mono small">${esc(l.ip || '—')}</td>
+      <td class="mono small">${fmtTime(l.created_at)}</td>
+    </tr>`).join('');
+  renderPager($('pager'), d.total, PAGE, SIZE, p => { PAGE = p; load(); });
+}
+</script>
+</body>
+</html>

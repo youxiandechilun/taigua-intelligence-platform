@@ -1,0 +1,43 @@
+/*
+ * 中文导读：数据看板的 DashboardAnnouncement.module 组件，封装该界面的展示与交互。
+ */
+.shell {
+  display: flex;
+  min-width: 0;
+  height: 2rem;
+  flex: 1 1 0%;
+  align-items: center;
+  margin-inline-start: clamp(0.5rem, 1.5vw, 1.5rem);
+  overflow: hidden;
+  color: var(--announcement-color, #b83240);
+}
+.viewport {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 0.75rem, #000 calc(100% - 0.75rem), transparent);
+}
+.track {
+  position: absolute;
+  inset-block: 0;
+  left: 100%;
+  display: flex;
+  width: max-content;
+  align-items: center;
+  white-space: nowrap;
+  font-weight: 500;
+  line-height: 1.25;
+  animation: dashboardAnnouncement var(--announcement-duration, 22s) linear infinite;
+  will-change: transform;
+}
+.track:hover { animation-play-state: paused; }
+@keyframes dashboardAnnouncement {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(calc(-100% - var(--announcement-width, 100vw)), 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewport { mask-image: none; }
+  .track { position: static; width: 100%; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 2rem; animation: none; }
+}

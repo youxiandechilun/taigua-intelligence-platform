@@ -1,0 +1,43 @@
+{
+  "version": "2026.11.11.3",
+  "python_release": "20261026",
+  "packages": {
+    "macos-x64": {
+      "sha256": "04fe4ecab39478a48f2a28949fda0e63535d42045c4cdb01edc373784dd036bd",
+      "bytes": 201567526,
+      "runtime_sha256": "37c38fda76fec1fbf310adcbafb7f0d96af13b5511bf8ea954c3aa8eec185734",
+      "runtime_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.12.16%2B20261026-x86_64-apple-darwin-install_only_stripped.tar.gz",
+      "native_install_verified": false,
+      "source_sha256": "85706702b710a45513a07ac158f9853be6fff819be3b2be0fdec195d9103affc",
+      "native_runtime_verified": false,
+      "layout": "single-application",
+      "entry": "泰卦插件.app",
+      "native_gui_verified": false,
+      "minimum_system_version": "13.0"
+    },
+    "macos-arm64": {
+      "sha256": "8816ff266afde0f3ea2f72004e284a931df7492d36555418544f7101858a5c40",
+      "bytes": 173037629,
+      "runtime_sha256": "353d5f1b4fd2715e7053f12f068435d5bbad16b91e057006b5d01e0925709a7e",
+      "runtime_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.12.16%2B20261026-aarch64-apple-darwin-install_only_stripped.tar.gz",
+      "native_install_verified": false,
+      "source_sha256": "85706702b710a45513a07ac158f9853be6fff819be3b2be0fdec195d9103affc",
+      "native_runtime_verified": false,
+      "layout": "single-application",
+      "entry": "泰卦插件.app",
+      "minimum_system_version": "13.0",
+      "native_gui_verified": false
+    },
+    "windows-x64": {
+      "sha256": "784f07a35f3330104d66b09b4838241eb3f9f405d097b55428bd8a85550568d8",
+      "bytes": 170189248,
+      "runtime_sha256": "1f2ab53880fc67ea323398c6388e05af28addc99a8e389209f08a51fdff4b149",
+      "runtime_url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.12.16%2B20261026-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "native_install_verified": false,
+      "source_sha256": "85706702b710a45513a07ac158f9853be6fff819be3b2be0fdec195d9103affc",
+      "native_runtime_verified": false,
+      "layout": "single-application",
+      "entry": "泰卦插件.exe"
+    }
+  }
+}

@@ -1,0 +1,61 @@
+/*
+ * 中文导读：线路与语音外呼的 ModelSettings 组件，封装该界面的展示与交互。
+ */
+"use client";
+import { NativeSelect } from "@/src/components/ui/native-select";
+import Image from 'next/image';
+import {ChevronLeft,ChevronRight,RefreshCw, Save } from 'lucide-react';
+import {useState} from 'react';
+import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
+import {useAliyunIdentity} from '@/src/hooks/queries/aliyun';
+import {telephonyApi,type ModelCatalog} from '@/src/lib/api/resources/telephony';
+import {Button} from '@/src/components/ui/button';
+import {Input} from '@/src/components/ui/input';
+import {toast} from '@/src/lib/toast';
+import {ModelUsagePanel,balanceText,balanceStatusText,balanceNeedsAuthorization,tokenNumber} from './ModelUsagePanel';
+function CredentialForm({data,provider}:{data:ModelCatalog;provider:string}){
+ const {org}=useAliyunIdentity(),qc=useQueryClient();
+ return <section className="rounded-xl border bg-card p-4"><h2 className="text-sm font-semibold">平台密钥</h2><CredentialEditor key={org+provider} org={org} provider={provider} configured={!!data.credentials.find(c=>c.id===provider)?.configured} canSave={!!data.credentials.find(c=>c.id===provider)?.canSave} invalidate={()=>{void qc.invalidateQueries({queryKey:['telephony']});void qc.invalidateQueries({queryKey:['employee-model']});void qc.invalidateQueries({queryKey:['employee-sip-voice']});}}/></section>;
+}
+function CredentialEditor({org,provider,configured,canSave,invalidate}:{org:string;provider:string;configured:boolean;canSave:boolean;invalidate:()=>void}){
+ const [key,setKey]=useState(''),[changed,setChanged]=useState(false);
+ const read=useMutation({mutationFn:async()=>{const d=await telephonyApi.readCredential(org,provider);setKey(d.apiKey);setChanged(false);},onError:(e:Error)=>toast.error(e.message),gcTime:0});
+ const save=useMutation({mutationFn:()=>telephonyApi.saveCredential(org,{provider,apiKey:key}),onSuccess:()=>{setChanged(false);invalidate();toast.success('密钥已保存，请检查模型连通性');},onError:(e:Error)=>toast.error(e.message),gcTime:0});
+ return <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={e=>{e.preventDefault();save.mutate();}}><label className="grid min-w-56 flex-1 gap-2 text-sm text-muted-foreground">模型密钥<Input aria-label="模型密钥" type="text" autoComplete="off" spellCheck={false} value={key} placeholder={configured?'点击查看已保存密钥，或填写新密钥':'填写服务商的 API Key'} onChange={e=>{setKey(e.target.value);setChanged(true);}}/></label>{configured&&<Button type="button" variant="outline" size="sm" disabled={read.isPending||save.isPending} onClick={()=>read.mutate()}><Save aria-hidden="true" className="size-4" />{read.isPending?'读取中…':'查看已保存密钥'}</Button>}<Button type="submit" size="sm" disabled={!canSave||!changed||!key.trim()||save.isPending}><Save aria-hidden="true" className="size-4" />{save.isPending?'保存中…':'保存密钥'}</Button></form>;
+}
+function ModelStatus({model,canTest}:{model:ModelCatalog['models'][number];canTest:boolean}){
+ const {org}=useAliyunIdentity(),qc=useQueryClient();const [confirm,setConfirm]=useState(false);
+ const test=useMutation({mutationFn:()=>telephonyApi.testModel(org,model.id),onSuccess:d=>{void qc.invalidateQueries({queryKey:['telephony']});if(d.connected)toast.success('模型连接成功');else toast.error(d.message);setConfirm(false);},onError:(e:Error)=>{toast.error(e.message);setConfirm(false);},gcTime:0});
+ return <div className="min-w-40"><div className="flex items-center gap-3"><span role="status" aria-live="polite" title={model.checkedAt?'最近检查：'+new Date(model.checkedAt).toLocaleString('zh-CN')+' · '+model.message:undefined} className="inline-flex min-w-16 items-center gap-1.5 whitespace-nowrap text-xs"><span aria-hidden="true" className={'h-1.5 w-1.5 shrink-0 rounded-full '+(model.connected?'bg-emerald-500':'bg-slate-400')}/>{test.isPending?'检查中…':model.connected?'已连接':model.checkedAt?'未连接':model.configured?'待检查':'未配置密钥'}</span>{canTest&&<Button type="button" size="xs" variant="ghost" className="h-7 gap-1 rounded-md px-2 text-xs font-normal text-primary hover:bg-primary/5 hover:text-primary" aria-label={'检查'+model.name+'连通性'} title="重新检查服务认证与模型响应" disabled={!model.configured||test.isPending} onClick={()=>setConfirm(true)}><RefreshCw aria-hidden="true" className={'size-3 '+(test.isPending?'animate-spin motion-reduce:animate-none':'')}/>检查连通性</Button>}</div>{model.checkedAt&&!model.connected&&model.message&&<p className="mt-1 max-w-56 text-xs leading-5 text-muted-foreground">{model.message}</p>}{confirm&&<div role="dialog" aria-label="确认模型连通检查" className="mt-2 max-w-72 rounded-md border bg-muted/30 p-3"><p className="text-sm leading-5 text-muted-foreground">{model.kind==='text'?'发送一条简短消息，核对密钥和模型响应，可能产生少量模型费用。':'检查语音服务认证与会话配置，不拨打电话。'}</p><div className="mt-2 flex gap-2"><Button type="button" size="xs" disabled={test.isPending} onClick={()=>test.mutate()}>开始检查</Button><Button type="button" size="xs" variant="ghost" disabled={test.isPending} onClick={()=>setConfirm(false)}>取消</Button></div></div>}</div>;
+}
+const platforms=[
+ {id:'qwen',name:'阿里云百炼',vendor:'阿里云百炼',description:'文字对话与实时语音模型'},
+ {id:'stepfun',name:'阶跃星辰',vendor:'阶跃星辰',description:'文字推理、通话整理与实时语音'},
+ {id:'deepseek',name:'DeepSeek',vendor:'深度求索',description:'文字试聊与客户通话整理'},
+ {id:'zhipu',name:'智谱',vendor:'智谱',description:'文字对话与业务内容整理'},
+] as const;
+function Form({data}:{data:ModelCatalog}){
+ const {org,user}=useAliyunIdentity(),qc=useQueryClient();
+ const [active,setActive]=useState<string|null>(null);
+ const usage=useQuery({queryKey:['model-usage',user,org],queryFn:()=>telephonyApi.modelUsage(org),enabled:!!org&&data.canConfigure,retry:false,refetchInterval:15000,refetchIntervalInBackground:false});
+ const [baseRevision,setBaseRevision]=useState(data.revision);
+ const [enabled,setEnabled]=useState(data.models.filter(m=>m.enabled).map(m=>m.id)),[summaryModel,setSummary]=useState(data.summaryModel);
+ const platform=platforms.find(p=>p.id===active);
+ const visible=data.models.filter(m=>m.vendor===platform?.vendor);
+ const save=useMutation({mutationFn:()=>telephonyApi.saveModels(org,{enabled,summaryModel,expectedRevision:baseRevision}),onSuccess:result=>{setBaseRevision(result.revision);void qc.invalidateQueries({queryKey:['telephony']});void qc.invalidateQueries({queryKey:['employee-model']});void qc.invalidateQueries({queryKey:['employee-sip-voice']});toast.success('模型授权已保存');},onError:(e:Error)=>toast.error(e.message)});
+ return <div className="space-y-5">
+ {!platform?<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{platforms.filter(p=>data.canConfigure||data.models.some(m=>m.vendor===p.vendor)).map(p=>{
+ const models=data.models.filter(m=>m.vendor===p.vendor),connected=models.filter(m=>m.connected).length,configured=models.some(m=>m.configured),checked=models.some(m=>m.checkedAt),account=usage.data?.platforms.find(v=>v.id===p.id);
+ return <button type="button" key={p.id} onClick={()=>setActive(p.id)} className="group flex min-h-48 flex-col rounded-xl border bg-card p-5 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="flex items-center justify-between"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/30"><Image src={'/brand/models/'+p.id+'.svg'} alt="" width={36} height={36}/></div><ChevronRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary"/></div><h2 className="mt-4 text-base font-semibold">{p.name}</h2><p className="mt-1 text-sm leading-5 text-muted-foreground">{p.description}</p><div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span aria-hidden="true" className={'h-2 w-2 rounded-full '+(connected?'bg-emerald-500':'bg-slate-400')}/><span>{connected?connected+' 个模型已连接':configured?(checked?'未连接':'密钥已保存 · 待检查'):'尚未配置'}</span><span className="ml-auto">已授权 {models.filter(m=>m.enabled).length} 个</span></div>{data.canConfigure&&<div className="mt-4 grid w-full grid-cols-2 gap-3 border-t pt-3"><div><p className="text-sm text-muted-foreground">本月已记录 Token</p><p className="mt-1 text-sm font-semibold tabular-nums">{account?tokenNumber(account.totalTokens):'—'}</p></div><div><p className="text-sm text-muted-foreground">{p.id==='qwen'?'云账户可用额度':'平台余额'}</p><p className="mt-1 text-sm font-semibold tabular-nums">{account?balanceText(account):'—'}</p>{account&&(account.balanceError||account.balanceStale||balanceNeedsAuthorization(account))&&<p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{balanceStatusText(account)}</p>}</div></div>}</button>;
+ })}</div>:<>
+ <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><Button variant="ghost" size="sm" onClick={()=>setActive(null)}><ChevronLeft className="mr-1 h-4 w-4"/>返回平台</Button><Image src={'/brand/models/'+platform.id+'.svg'} alt="" width={28} height={28}/><h2 className="text-base font-semibold">{platform.name}</h2></div><span className="text-xs text-muted-foreground">{visible.length} 个可选模型</span></div>
+ {data.canConfigure&&<CredentialForm data={data} provider={platform.id}/>}
+ {data.canConfigure&&(usage.error?<p role="alert" className="text-xs text-destructive">用量加载失败 <button type="button" onClick={()=>void usage.refetch()} className="ml-2 underline">重新加载</button></p>:usage.data?.platforms.filter(p=>p.id===platform.id).map(p=><ModelUsagePanel key={org+p.id} platform={p} catalog={data} trackingSince={usage.data?.trackingSince??null}/>))}
+ <div className="overflow-auto rounded-xl border bg-card"><table className="min-w-[640px] w-full text-left text-sm"><thead className="border-b bg-muted/20"><tr>{['模型','用途','连接状态',...(data.canConfigure?['工作区授权']:[])].map(h=><th key={h} className="px-4 py-3 text-sm font-medium">{h}</th>)}</tr></thead><tbody>{visible.map(model=><tr key={model.id} className="border-b last:border-0"><td className="px-4 py-3"><p className="font-medium">{model.name}</p></td><td className="px-4 py-3 text-sm text-muted-foreground">{model.kind==='text'?'文字试聊 / 通话整理':'电话实时对话'}</td><td className="px-4 py-3"><ModelStatus model={model} canTest={data.canConfigure}/></td>{data.canConfigure&&<td className="px-4 py-3"><input aria-label={'授权使用'+model.name} className="h-4 w-4 accent-primary" type="checkbox" checked={enabled.includes(model.id)} onChange={e=>{setEnabled(v=>e.target.checked?[...v,model.id]:v.filter(id=>id!==model.id));if(!e.target.checked&&summaryModel===model.id)setSummary('');}}/></td>}</tr>)}</tbody></table></div>
+ {data.canConfigure&&<div className="flex items-center justify-between gap-3"><Button size="sm" disabled={save.isPending} onClick={()=>save.mutate()}><Save aria-hidden="true" className="size-4" />{save.isPending?'保存中…':'保存模型授权'}</Button></div>}
+ </>}
+ {data.canConfigure&&!platform&&<section className="rounded-xl border bg-card p-4"><div className="flex flex-wrap items-end gap-4"><label className="grid min-w-64 flex-1 gap-2 text-sm">通话自动整理模型<NativeSelect aria-label="通话自动整理模型" className="h-9 rounded-md border bg-background px-3" value={summaryModel} onChange={e=>setSummary(e.target.value)}><option value="">沿用当前工作区配置</option>{data.models.filter(m=>m.kind==='text'&&enabled.includes(m.id)).map(m=><option key={m.id} value={m.id}>{m.name}{m.configured?'':'（待保存密钥）'}</option>)}</NativeSelect></label><Button size="sm" disabled={save.isPending} onClick={()=>save.mutate()}><Save aria-hidden="true" className="size-4" />{save.isPending?'保存中…':'保存整理模型'}</Button></div></section>}
+ {!data.canConfigure&&!data.models.length&&<p className="text-sm text-muted-foreground">尚未授权模型，请联系管理员。</p>}
+ </div>;
+}
+export function ModelSettings(){const {org,user}=useAliyunIdentity();const q=useQuery({queryKey:['telephony',user,org,'models'],queryFn:()=>telephonyApi.models(org),enabled:!!org,retry:false,refetchInterval:60000,refetchIntervalInBackground:false});return <div className="space-y-5">{q.error&&<p role="alert" className="text-sm text-destructive">{q.data?'刷新失败，当前编辑内容已保留：':''}{q.error.message}<Button type="button" size="sm" variant="ghost" onClick={()=>void q.refetch()}>重新读取</Button></p>}{q.isPending?<p className="text-sm text-muted-foreground">正在加载模型…</p>:q.data&&<Form key={org+user} data={q.data}/>}</div>;}

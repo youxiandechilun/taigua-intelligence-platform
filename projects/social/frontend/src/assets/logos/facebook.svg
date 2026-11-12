@@ -1,0 +1,6 @@
+<!-- 海外平台图标：Facebook 使用蓝底白色 f 标志。 -->
+<svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="facebook-title">
+  <title id="facebook-title">Facebook</title>
+  <circle cx="19" cy="19" r="18" fill="#1877F2"/>
+  <path d="M21.1 31V20.5H24.7L25.25 16.4H21.1V13.78C21.1 12.59 21.43 11.78 23.17 11.78H25.4V8.12C25.01 8.07 23.65 7.95 22.07 7.95C18.78 7.95 16.53 9.96 16.53 13.66V16.4H12.92V20.5H16.53V31H21.1Z" fill="white"/>
+</svg>

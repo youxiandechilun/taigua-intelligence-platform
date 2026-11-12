@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>系统设置 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+<style>
+.switch-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.switch-row:last-child{border-bottom:none}
+.switch-row .grow{flex:1;min-width:0}
+.switch-row b{font-size:13.5px;display:block}
+.switch-row span{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>系统设置</h1>
+          <p>平台基础信息与注册审核策略，保存后立即生效</p>
+        </div>
+        <div class="right">
+          <button class="btn btn-primary btn-sm" onclick="save()">保存设置</button>
+        </div>
+      </div>
+
+      <div class="cols cols-2">
+        <div class="panel">
+          <div class="panel-h"><b>平台信息</b><span class="sub">展示在「关于泰卦」与商家端</span></div>
+          <div class="field"><label>平台名称</label><input id="s-platform_name" /></div>
+          <div class="field"><label>品牌口号</label><input id="s-slogan" /></div>
+          <div class="field"><label>客服电话</label><input id="s-service_phone" /></div>
+          <div class="field"><label>公司地址</label><input id="s-address" /></div>
+          <div class="field"><label>服务时间</label><input id="s-service_time" /></div>
+        </div>
+
+        <div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="panel-h"><b>注册与审核</b></div>
+            <div class="switch-row">
+              <div class="grow">
+                <b>开放自助注册</b>
+                <span>关闭后商家只能由管理员在「商家管理」中开通</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="s-register_open" />
+                <i></i>
+              </label>
+            </div>
+            <div class="switch-row">
+              <div class="grow">
+                <b>自动审核通过</b>
+                <span>开启后新注册商家直接为「已认证」，关闭则为「待审核」</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="s-auto_review" />
+                <i></i>
+              </label>
+            </div>
+            <div class="field" style="margin-top:16px">
+              <label>新商家赠送点数</label>
+              <input id="s-default_points" type="number" min="0" />
+              <div class="hint">商家注册成功后立即自动入账并写入「注册赠送点数」流水，0 表示不赠送。无论审核通过与否，注册即送。</div>
+            </div>
+            <div class="divider"></div>
+            <div class="switch-row">
+              <div class="grow">
+                <b>注册必须邀请码</b>
+                <span>开启后，申请开通页必须填写有效邀请码才能注册</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="s-invite_required" />
+                <i></i>
+              </label>
+            </div>
+            <div class="field" style="margin-top:14px;margin-bottom:0">
+              <label>邀请人奖励点数</label>
+              <input id="s-invite_reward_points" type="number" min="0" />
+              <div class="hint">新商家填写有效邀请码注册成功后，邀请人自动获得的点数奖励，0 表示不奖励。奖励明细写入邀请人流水（备注「邀请奖励」）。</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h"><b>系统信息</b></div>
+            <dl class="dl">
+              <dt>服务版本</dt><dd class="mono">v1.3.0（管理后台重构）</dd>
+              <dt>数据库</dt><dd class="mono">SQLite · data.db</dd>
+              <dt>接口前缀</dt><dd class="mono">/api</dd>
+              <dt>健康检查</dt><dd><span class="dot on"></span><a href="/api/health" target="_blank" style="border-bottom:1px dashed var(--border-strong)">/api/health</a></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+
+(async () => {
+  const me = await admInit('admin-settings.html');
+  if (!me) return;
+  load();
+})();
+
+async function load() {
+  const j = await api('/api/admin/settings');
+  if (j.code !== 0) return toast(j.msg || '加载失败');
+  const s = j.data;
+  ['platform_name', 'slogan', 'service_phone', 'address', 'service_time', 'default_points'].forEach(k => {
+    if ($('s-' + k)) $('s-' + k).value = s[k] == null ? '' : s[k];
+  });
+  $('s-register_open').checked = s.register_open === '1';
+  $('s-auto_review').checked = s.review_mode === 'auto';
+  $('s-invite_required').checked = s.invite_required === '1';
+  $('s-invite_reward_points').value = s.invite_reward_points == null ? '0' : s.invite_reward_points;
+}
+
+async function save() {
+  const payload = {
+    platform_name: $('s-platform_name').value.trim(),
+    slogan: $('s-slogan').value.trim(),
+    service_phone: $('s-service_phone').value.trim(),
+    address: $('s-address').value.trim(),
+    service_time: $('s-service_time').value.trim(),
+    default_points: parseInt($('s-default_points').value || '0', 10),
+    register_open: $('s-register_open').checked ? '1' : '0',
+    review_mode: $('s-auto_review').checked ? 'auto' : 'manual',
+    invite_required: $('s-invite_required').checked ? '1' : '0',
+    invite_reward_points: parseInt($('s-invite_reward_points').value || '0', 10),
+  };
+  if (!payload.platform_name) return toast('平台名称不能为空');
+  const j = await api('/api/admin/settings', 'PUT', payload);
+  if (j.code === 0) toast('设置已保存并生效');
+  else toast(j.msg || '保存失败');
+}
+</script>
+</body>
+</html>

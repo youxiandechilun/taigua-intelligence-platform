@@ -1,0 +1,28 @@
+# 泰卦部署改造：只管理本次新增系统，独立用户、目录和端口。
+[Unit]
+Description=Taigua Publish Team Gateway
+After=network.target
+
+[Service]
+Type=simple
+User=taigua-publish
+Group=taigua-publish
+WorkingDirectory=/opt/taigua-publish/current
+EnvironmentFile=/opt/taigua-publish/shared/runtime.env
+ExecStart=/opt/taigua-publish/venv/bin/python -u /opt/taigua-publish/current/backend/team_gateway.py
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/taigua-publish/shared
+TasksMax=512
+MemoryHigh=1100M
+MemoryMax=1400M
+
+[Install]
+WantedBy=multi-user.target

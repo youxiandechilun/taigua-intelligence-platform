@@ -1,0 +1,7 @@
+<!-- 海外平台图标：LinkedIn 使用蓝底白色 in 标志。 -->
+<svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="linkedin-title">
+  <title id="linkedin-title">LinkedIn</title>
+  <rect x="1" y="1" width="36" height="36" rx="5" fill="#0A66C2"/>
+  <circle cx="11.2" cy="11.1" r="2.2" fill="white"/>
+  <path d="M9.35 15.15H13.05V28.9H9.35V15.15ZM15.7 15.15H19.25V17.03H19.3C19.79 16.1 20.99 14.68 23.42 14.68C27.17 14.68 27.85 17.14 27.85 20.35V28.9H24.15V21.32C24.15 19.52 24.12 17.2 21.64 17.2C19.12 17.2 18.73 19.12 18.73 21.11V28.9H15.7V15.15Z" fill="white"/>
+</svg>

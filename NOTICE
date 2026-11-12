@@ -1,0 +1,39 @@
+Taigua Intelligence Platform
+Copyright 2026 Taigua contributors
+
+The newly authored platform integration code and documentation in this
+repository are licensed under the Apache License, Version 2.0.
+Existing component copyright notices and license terms remain in effect.
+
+Included source components
+
+1. projects/telephony
+   QuickVoice
+   Copyright (c) 2026 QuickVoice contributors
+   MIT License. The original license is retained at projects/telephony/LICENSE.
+   Individual files with other copyright or license headers retain those terms.
+   Provider SVG icons retain the LobeHub MIT notice at
+   projects/telephony/apps/console/public/brand/models/LICENSE.txt.
+
+2. projects/social
+   QianfanSync / AI Social Auto Upload Contributors
+   Apache License 2.0. The original LICENSE and NOTICE are retained.
+   This component includes code based on social-auto-upload by dreammis,
+   under the MIT License. The original MIT notice is retained in
+   projects/social/NOTICE.
+
+Third-party packages are specified through dependency manifests and lockfiles.
+Their licenses continue to apply to their respective code. Installations and
+redistributed binaries must retain the notices required by those packages.
+
+Modifications made in this snapshot include multi-merchant platform identity,
+SSO tickets and sessions, point accounting, encrypted configuration, domestic
+outreach workflows, social execution and billing integration, and telephony
+platform integration. These changes are in active development.
+
+SIP bridge components are adapted from rasonyang/ai-native-callcenter.
+The upstream Apache-2.0 LICENSE and NOTICE are retained in
+projects/telephony/services/sip-bridge/.
+
+Public snapshot adjustments replace demonstration contact addresses and
+configuration fallbacks with sample values and correct the social license badge.

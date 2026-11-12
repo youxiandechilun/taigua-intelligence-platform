@@ -1,0 +1,6 @@
+<!-- 海外平台图标：X 使用黑底白色交叉字标。 -->
+<svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="x-title">
+  <title id="x-title">X</title>
+  <rect x="1" y="1" width="36" height="36" rx="10" fill="#111111"/>
+  <path d="M9.2 9H13.9L18.93 15.73L24.62 9H27.1L20.04 17.35L28.8 29H24.1L18.55 21.55L12.35 29H9.87L17.44 19.93L9.2 9ZM13.1 11.05L24.97 26.95H26.13L14.26 11.05H13.1Z" fill="white"/>
+</svg>

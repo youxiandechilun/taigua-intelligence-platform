@@ -1,0 +1,48 @@
+/*
+ * 中文导读：数字员工与话术的 script-overview.module 组件，封装该界面的展示与交互。
+ */
+.overview { display: grid; grid-template-columns: 175px minmax(0,1fr); align-items: start; min-width: 0; background: var(--card); }
+.directory { position: sticky; top: 24px; display: grid; gap: 5px; padding: 24px 12px; }
+.directoryTitle { padding: 0 10px 12px; color: var(--muted-foreground); font-size: 11px; }
+.directory button { display: flex; align-items: center; gap: 9px; min-height: 38px; padding: 9px 10px; border-radius: 6px; color: var(--muted-foreground); text-align: left; font-size: 12px; }
+.directory button span { flex: 1; }
+.directory button small { font-size: 10px; font-variant-numeric: tabular-nums; }
+.directory button:hover { background: var(--muted); }
+.directory button[aria-current="page"] { color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--card)); font-weight: 500; }
+.document { min-width: 0; min-height: 530px; padding: 24px 28px; border-left: 1px solid var(--border); }
+.heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.heading h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.heading p { margin: 7px 0 0; color: var(--muted-foreground); font-size: 11px; line-height: 1.8; }
+.actions { display: flex; gap: 2px; }
+.entries { display: grid; }
+.entry { padding: 22px 0; border-bottom: 1px solid var(--border); }
+.entry:last-child { border-bottom: 0; }
+.entryHeading { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.entryHeading h3 { flex: 1; margin: 0; font-size: 13px; font-weight: 600; line-height: 1.9; overflow-wrap: anywhere; }
+.entryHeading > button { margin-left: auto; }
+.number { display: grid; place-items: center; width: 24px; height: 24px; background: var(--muted); border-radius: 5px; font-size: 10px; color: var(--muted-foreground); }
+.badge { padding: 2px 6px; border-radius: 3px; color: var(--primary); background: color-mix(in srgb,var(--primary) 6%,var(--card)); font-size: 10px; }
+.content { max-width: 72ch; margin: 12px 0 0; font-size: 13px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
+.field { margin: 10px 0 0; font-size: 11px; color: var(--muted-foreground); }
+.branches { display: flex; gap: 7px 24px; flex-wrap: wrap; margin-top: 14px; }
+.branches > div { display: grid; grid-template-columns: auto 12px 1fr; align-items: center; gap: 4px 7px; padding: 6px 0; font-size: 11px; color: var(--muted-foreground); }
+.branches button { width: fit-content; color: var(--primary); text-align: left; overflow-wrap: anywhere; }
+.branches button:hover { text-decoration: underline; }
+.branches button:disabled { color: var(--destructive); }
+.branches small { grid-column: 1/-1; max-width: 65ch; font-size: 10px; line-height: 1.8; overflow-wrap: anywhere; }
+.rules { padding-top: 22px; }
+.ruleHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ruleHeading h3 { font-size: 13px; font-weight: 600; }
+.rules dl { display: grid; margin: 0; }
+.rules dl > div { padding: 20px 0; border-bottom: 1px solid var(--border); }
+.rules dt { margin-bottom: 10px; color: var(--muted-foreground); font-size: 11px; }
+.rules dd { max-width: 72ch; margin: 0; font-size: 13px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
+.backup { padding-top: 20px; color: var(--muted-foreground); font-size: 11px; }
+.backup summary { cursor: pointer; }
+.backup p { margin: 14px 0; }
+.backup pre { max-height: 280px; margin-bottom: 14px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; line-height: 1.9; }
+.empty { padding: 48px 0; color: var(--muted-foreground); font-size: 12px; }
+.overview button { cursor: pointer; }
+.overview button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+@media (max-width: 900px) { .overview { grid-template-columns: 145px minmax(0,1fr); } .directory { padding: 20px 8px; } .document { padding: 20px; } }
+@media (max-width: 640px) { .overview { grid-template-columns: 1fr; } .directory { position: static; display: flex; overflow-x: auto; padding: 12px; gap: 5px; border-bottom: 1px solid var(--border); } .directoryTitle { display: none; } .directory button { flex-shrink: 0; padding: 7px 10px; } .directory button small { display: none; } .document { padding: 18px; border-left: 0; } .content { font-size: 12px; } }

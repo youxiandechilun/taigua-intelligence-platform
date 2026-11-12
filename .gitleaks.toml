@@ -1,0 +1,165 @@
+title = "Reviewed synthetic fixtures and platform registry values"
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/impl/registry\.py$''']
+regexes = ['''^LinkedinPlatform$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/tests_team/test_branding\.py$''']
+regexes = ['''^Brand\-test\-2026$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/tests_team/test_branding\.py$''']
+regexes = ['''^Employee\-test\-2026$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/tests_team/test_branding\.py$''']
+regexes = ['''^Employee\-test\-2026$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/tests_team/test_hybrid_integration\.py$''']
+regexes = ['''^Synthetic\-test\-2026$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/tests_team/test_team_access\.py$''']
+regexes = ['''^Employee\-test\-2026$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/tests_team/test_team_access\.py$''']
+regexes = ['''^Employee\-test\-2026$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/tests_team/test_team_access\.py$''']
+regexes = ['''^Employee\-test\-2026$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/social/backend/tests_team/test_team_access\.py$''']
+regexes = ['''^Employee\-test\-2026$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/agent/agent\.route\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/agent/agent\.route\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/numbers/phone\.route\.authorization\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/numbers/phone\.route\.authorization\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/outbound/outbound\-call\.route\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/outbound/outbound\-call\.route\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/system/runtime\-mode\.route\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/system/runtime\-mode\.route\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/middleware/authorize\.middleware\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/middleware/authorize\.middleware\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/mcp/mcp\.execution\-authorization\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/mcp/mcp\.execution\-authorization\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/security/internal\-rate\-limit\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/security/internal\-rate\-limit\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/api/reported\-endpoints\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/api/reported\-endpoints\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/realtime/live\-transcript\.gateway\.test\.ts$''']
+regexes = ['''^sk_test_placeholder$''']
+
+[[allowlists]]
+description = "Reviewed test fixture or non-authentication platform identifier"
+condition = "AND"
+paths = ['''^projects/telephony/apps/server/tests/realtime/live\-transcript\.gateway\.test\.ts$''']
+regexes = ['''^test\-secret\-with\-adequate\-length\-32chars$''']

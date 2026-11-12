@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>登录 - 泰卦智能 商家服务平台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --border:#e4e4e7;--border-strong:#d4d4d8;--text:#18181b;--text-2:#3f3f46;
+  --muted:#71717a;--muted-2:#a1a1aa;--accent:#c0392b;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.6;background:#fff;color:var(--text);
+}
+.login-wrap{display:flex;min-height:100vh}
+
+/* ① 品牌区（左 55%） */
+.brand-side{
+  flex:0 0 55%;background:#141416;color:#fafafa;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;padding:0 7vw;
+}
+.brand-side::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(640px 360px at 30% 40%,rgba(192,57,43,.16),transparent 70%),
+  linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:auto,64px 64px,64px 64px;
+  mask-image:radial-gradient(760px 520px at 30% 45%,#000 30%,transparent 80%);
+  -webkit-mask-image:radial-gradient(760px 520px at 30% 45%,#000 30%,transparent 80%);
+}
+.brand-side .logo-chip{
+  display:inline-flex;align-self:flex-start;background:#fff;border-radius:12px;
+  padding:10px 17px;margin-bottom:26px;box-shadow:0 10px 28px rgba(0,0,0,.45);
+}
+.brand-side .logo-chip img{height:42px;display:block}
+.brand-side .badge{
+  position:relative;display:inline-flex;align-items:center;gap:7px;align-self:flex-start;
+  padding:5px 13px;border:1px solid rgba(255,255,255,.18);border-radius:999px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;color:rgba(255,255,255,.72);margin-bottom:24px;
+}
+.brand-side .badge i{width:6px;height:6px;border-radius:50%;background:#e05a4b;display:block}
+.brand-side h1{font-size:clamp(30px,3.4vw,50px);font-weight:700;line-height:1.28;letter-spacing:.01em;position:relative}
+.brand-side h1 .hl{color:#e05a4b}
+.brand-side .sub{
+  margin-top:26px;color:rgba(255,255,255,.62);font-size:15px;max-width:460px;
+  line-height:1.85;position:relative;
+}
+.brand-side .foot{
+  position:absolute;bottom:34px;left:7vw;right:7vw;display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.35);
+}
+@media(max-width:860px){
+  .brand-side{display:none}
+  .login-side{flex:1}
+}
+
+/* ② 登录卡（右 45%） */
+.login-side{flex:1;display:flex;align-items:center;justify-content:center;background:#fff;padding:32px}
+.login-card{width:100%;max-width:382px}
+.login-card .top-logo{display:none;height:40px;margin-bottom:30px}
+@media(max-width:860px){.login-card .top-logo{display:block}}
+.login-card h2{font-size:24px;font-weight:700}
+.login-card .desc{color:var(--muted);font-size:14px;margin:8px 0 26px}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--border);margin-bottom:22px}
+.tabs button{
+  background:none;border:none;font-size:14.5px;color:var(--muted);cursor:pointer;
+  padding:10px 2px;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:500;
+}
+.tabs button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;font-weight:500}
+.field .row{display:flex;gap:10px}
+.field input{
+  width:100%;padding:11px 13px;border:1px solid var(--border-strong);border-radius:10px;
+  font-size:14.5px;background:#fff;color:var(--text);font-family:inherit;transition:border-color .2s;
+}
+.field input:focus{outline:none;border-color:var(--accent)}
+.field .code-btn{
+  white-space:nowrap;padding:0 16px;border:1px solid var(--border-strong);border-radius:10px;
+  background:#fff;color:var(--text-2);font-size:13.5px;cursor:pointer;font-family:inherit;transition:all .2s;min-width:104px;
+}
+.field .code-btn:hover{border-color:var(--muted-2)}
+.field .code-btn:disabled{color:var(--muted-2);cursor:not-allowed}
+.agree{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--muted);margin:4px 0 18px}
+.agree input{margin-top:3px;accent-color:var(--accent)}
+.agree a{color:var(--accent)}
+.btn-login{
+  width:100%;padding:13px;border:none;border-radius:11px;background:var(--accent);color:#fff;
+  font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;letter-spacing:.2em;
+}
+.btn-login:hover{opacity:.88}
+.btn-login:disabled{opacity:.45;cursor:not-allowed}
+.login-foot{display:flex;justify-content:space-between;margin-top:18px;font-size:13px;color:var(--muted)}
+.login-foot a:hover{color:var(--text)}
+.err{display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);color:var(--accent);border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:14px}
+.demo{margin-top:26px;border:1px dashed var(--border-strong);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--muted)}
+.demo .mono{font-family:var(--mono)}
+#toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);z-index:999;background:#18181b;color:#fff;padding:10px 22px;border-radius:999px;font-size:14px;transition:transform .3s ease}
+#toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+
+  <!-- ① 品牌区 -->
+  <div class="brand-side">
+    <span class="logo-chip"><img src="../assets/logo.jpg" alt="泰卦智能 TAIKUA" /></span>
+    <span class="badge"><i></i>MERCHANT PLATFORM</span>
+    <h1>让销售工作流<br/><span class="hl">更智能、更高效</span></h1>
+    <p class="sub">Asalegent 智能体平台 + 泰卦智能硬件，软硬一体的销售智能体解决方案。电话营销、社媒矩阵、拓客转私域三大智能体，覆盖国内与海外市场。</p>
+    <div class="foot"><span>taikua.cn</span><span>TAIKUA · SINCE 2024</span></div>
+  </div>
+
+  <!-- ② 登录卡 -->
+  <div class="login-side">
+    <form class="login-card" id="form" autocomplete="off">
+      <img class="top-logo" src="../assets/logo.jpg" alt="泰卦智能" />
+      <h2>商家登录</h2>
+      <p class="desc">使用签约手机号登录，进入控制台</p>
+
+      <div class="err" id="err"></div>
+
+      <div class="field">
+        <label>手机号</label>
+        <input id="phone" type="tel" maxlength="11" placeholder="11 位手机号" required />
+      </div>
+
+      <div class="field">
+        <label>密码</label>
+        <input id="password" type="password" placeholder="登录密码" required />
+      </div>
+
+      <label class="agree">
+        <input type="checkbox" id="agree" />
+        <span>我已阅读并同意 <a href="javascript:;" data-doc="service">《服务协议》</a><a href="javascript:;" data-doc="privacy">《隐私政策》</a>与<a href="javascript:;" data-doc="refund">《充值与退款协议》</a></span>
+      </label>
+
+      <button class="btn-login" type="submit" id="btn-login">登　录</button>
+
+      <div class="login-foot">
+        <a href="javascript:;" id="forgot">忘记密码</a>
+        <a href="/zt/apply">还没有账号？<b>申请开通</b></a>
+      </div>
+
+      <div class="demo">
+        首次登录请使用签约手机号与初始密码，登录后请及时修改密码
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- 协议 / 忘记密码 弹窗 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="doc-title">服务协议</h3>
+      <button type="button" id="doc-close">✕</button>
+    </div>
+    <div class="modal-body" id="doc-body"></div>
+    <div class="modal-foot"><button type="button" class="btn-ok" id="doc-ok">我知道了</button></div>
+  </div>
+</div>
+
+<style>
+.mask{position:fixed;inset:0;background:rgba(24,24,27,.45);backdrop-filter:blur(3px);z-index:300;display:none;align-items:center;justify-content:center;padding:24px}
+.mask.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:76vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.18)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:16px;font-weight:700}
+.modal-head button{background:none;border:none;font-size:16px;color:var(--muted);cursor:pointer;line-height:1}
+.modal-body{padding:20px 22px;overflow-y:auto;font-size:13.5px;color:var(--text-2);line-height:1.9}
+.modal-body b{color:var(--text)}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end}
+.btn-ok{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 22px;font-size:14px;cursor:pointer;font-family:inherit}
+</style>
+
+<script>
+const $ = s => document.querySelector(s);
+function showErr(msg) { const e = $('#err'); e.textContent = msg; e.style.display = 'block'; }
+function showToast(msg) {
+  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// 登录
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const phone = $('#phone').value.trim();
+  const agree = $('#agree').checked;
+  if (!/^1\d{10}$/.test(phone)) return showErr('请输入正确的 11 位手机号');
+  if (!$('#password').value) return showErr('请输入登录密码');
+  if (!agree) return showErr('请先阅读并勾选协议');
+  $('#err').style.display = 'none';
+  const btn = $('#btn-login');
+  btn.disabled = true; btn.textContent = '登录中…';
+  try {
+    const body = { phone, password: $('#password').value };
+    const res = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const j = await res.json();
+    if (j.code === 0) {
+      // 商家入口只放行商家账号，管理员账号由后端 403 拦截
+      if (j.data.merchant && j.data.merchant.role === 'admin') {
+        showErr('管理员请使用管理端专属登录入口');
+        return;
+      }
+      localStorage.setItem('tk_token', j.data.token);
+      showToast('登录成功，正在进入控制台…');
+      setTimeout(() => location.href = '/zt/merchant', 600);
+    } else {
+      showErr(j.msg || '登录失败');
+    }
+  } catch (err) {
+    showErr('网络异常，请确认后端服务已启动');
+  }
+  btn.disabled = false; btn.textContent = '登　录';
+});
+
+// 已登录直接进入
+if (localStorage.getItem('tk_token')) {
+  fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('tk_token') } })
+    .then(r => r.json()).then(j => {
+      if (j.code !== 0) return;
+      if (j.data && j.data.role === 'admin') {
+        localStorage.removeItem('tk_token');   // 管理员登录态在商家端无效
+        return;
+      }
+      location.href = '/zt/merchant';
+    });
+}
+
+/* ---------- 协议弹窗（公开页，避免跳转到需要登录的页面） ---------- */
+const DOCS = {
+  service: {
+    title: '服务协议',
+    body: `<p>本协议由 <b>泰卦智能</b>（以下简称“平台”）与商家用户签订，用于规范双方在销售智能体服务中的权利与义务。</p>
+      <p><b>一、服务内容</b><br/>平台向商家提供电话营销、社媒矩阵、拓客转私域等智能体服务，以及对应的控制台、数据看板与技术支持。</p>
+      <p><b>二、账号与安全</b><br/>商家应妥善保管登录凭据，账号下的操作视为商家本人行为。发现异常应及时联系客服并重置密码。</p>
+      <p><b>三、使用规范</b><br/>商家须遵守外呼、内容发布等相关法律法规及渠道规则，不得用于骚扰、欺诈等违规用途。</p>
+      <p><b>四、服务变更</b><br/>平台可能根据业务需要对功能进行升级调整，重大变更将通过公告与站内通知提前告知。</p>`
+  },
+  privacy: {
+    title: '隐私政策',
+    body: `<p>平台重视商家与用户的信息安全，仅在本政策所述范围内收集与使用信息。</p>
+      <p><b>一、收集范围</b><br/>注册与认证所需的手机号、企业名称、联系人、邮箱等资料；服务运行产生的操作日志与用量数据。</p>
+      <p><b>二、使用目的</b><br/>账号认证、服务开通、用量计费、故障排查与合规审计。</p>
+      <p><b>三、信息共享</b><br/>除法律法规要求或取得商家授权外，不向第三方提供商家信息。</p>
+      <p><b>四、数据保留</b><br/>客服对话记录保留 90 天；审计日志按合规要求保留。</p>`
+  },
+  refund: {
+    title: '充值与退款协议',
+    body: `<p><b>一、点数说明</b><br/>点数用于智能体运行消耗，充值后实时计入账户余额，不可提现、不可转让。</p>
+      <p><b>二、到账时间</b><br/>在线支付回调成功后 5 分钟内到账；卡密兑换即时到账。</p>
+      <p><b>三、有效期</b><br/>点数有效期随套餐周期，到期前平台将通过站内通知提醒。</p>
+      <p><b>四、退款规则</b><br/>已消费点数不予退款；未消费部分可联系客服申请，审核通过后原路退回。</p>
+      <p><b>五、发票</b><br/>可在客服中心提交工单申请开具，1-3 个工作日内处理。</p>`
+  }
+};
+function openDoc(key) {
+  const d = DOCS[key];
+  if (!d) return;
+  document.getElementById('doc-title').textContent = d.title;
+  document.getElementById('doc-body').innerHTML = d.body;
+  document.getElementById('mask').classList.add('show');
+}
+function closeDoc() { document.getElementById('mask').classList.remove('show'); }
+document.querySelectorAll('[data-doc]').forEach(a => {
+  a.addEventListener('click', e => { e.preventDefault(); openDoc(a.dataset.doc); });
+});
+document.getElementById('doc-close').onclick = closeDoc;
+document.getElementById('doc-ok').onclick = closeDoc;
+document.getElementById('mask').addEventListener('click', e => {
+  if (e.target.id === 'mask') closeDoc();
+});
+// 忘记密码：公开提示，不跳转需登录的页面
+document.getElementById('forgot').addEventListener('click', e => {
+  e.preventDefault();
+  openDocModalRaw('找回密码', `<p>请使用签约手机号联系客户经理重置密码：</p>
+    <p style="font-size:15px"><b>客服电话：18925568615</b><br/>服务时间：工作日 09:00–18:30</p>
+    <p>也可在登录后于「客服中心」提交工单，注明企业名称与手机号，我们会协助重置。</p>`);
+});
+function openDocModalRaw(title, html) {
+  document.getElementById('doc-title').textContent = title;
+  document.getElementById('doc-body').innerHTML = html;
+  document.getElementById('mask').classList.add('show');
+}
+</script>
+</body>
+</html>

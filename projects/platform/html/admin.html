@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>数据总览 - 泰卦智能管理后台</title>
+<link rel="icon" href="../icons/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="../icons/favicon-32.png" />
+<link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="common-admin.css" />
+</head>
+<body>
+<div class="adm">
+  <div id="adm-side-root"></div>
+  <div class="adm-main">
+    <div id="adm-top-root"></div>
+    <div class="adm-body">
+
+      <div class="adm-head">
+        <div>
+          <h1>数据总览</h1>
+          <p id="today-line">平台运营实时概览</p>
+        </div>
+        <div class="right">
+          <a class="btn btn-sm" href="admin-merchants.html?status=待审核">处理待审核</a>
+          <a class="btn btn-primary btn-sm" href="/ht/admin-points">点数管理</a>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="kpis"></div>
+
+      <div class="cols cols-32" style="margin-bottom:16px">
+        <div class="panel">
+          <div class="panel-h">
+            <b>近 7 日新增商家</b>
+            <span class="sub" id="trend-sum"></span>
+            <div class="r">
+              <a class="btn btn-sm" href="/ht/admin-merchants">查看全部商家</a>
+            </div>
+          </div>
+          <div class="bars" id="bars"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><b>平台资源</b></div>
+          <div class="mini-row" style="grid-template-columns:1fr 1fr">
+            <div class="mini" style="border:none;padding:0">
+              <div class="l">累计发放点数</div>
+              <div class="n" id="sum-in">0</div>
+            </div>
+            <div class="mini" style="border:none;padding:0">
+              <div class="l">累计消耗点数</div>
+              <div class="n" id="sum-out">0</div>
+            </div>
+          </div>
+          <div class="divider" style="margin:12px 0"></div>
+          <dl class="dl">
+            <dt>智能体</dt><dd id="i-agents">—</dd>
+            <dt>分类数</dt><dd id="i-tags">—</dd>
+            <dt>已发布公告</dt><dd id="i-ann">—</dd>
+            <dt>管理员</dt><dd id="i-admins">—</dd>
+            <dt>服务状态</dt><dd><span class="dot on"></span>运行正常</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="cols cols-2" style="margin-bottom:16px">
+        <div class="panel">
+          <div class="panel-h">
+            <b>待审核商家</b>
+            <div class="r"><a class="btn btn-sm" href="admin-merchants.html?status=待审核">全部</a></div>
+          </div>
+          <div id="pending-list"><div class="empty" style="padding:24px;text-align:center;color:var(--muted-2);font-size:13px">加载中…</div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h">
+            <b>待处理工单</b>
+            <div class="r"><a class="btn btn-sm" href="/ht/admin-tickets">全部</a></div>
+          </div>
+          <div id="ticket-list"><div class="empty" style="padding:24px;text-align:center;color:var(--muted-2);font-size:13px">加载中…</div></div>
+        </div>
+      </div>
+
+      <div class="cols cols-2">
+        <div class="panel">
+          <div class="panel-h">
+            <b>最新公告</b>
+            <div class="r"><a class="btn btn-sm" href="/ht/admin-announcements">管理</a></div>
+          </div>
+          <div id="ann-list"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-h">
+            <b>最近操作</b>
+            <div class="r"><a class="btn btn-sm" href="/ht/admin-logs">日志</a></div>
+          </div>
+          <div id="log-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="common-admin.js"></script>
+<script>
+(async () => {
+  const me = await admInit('admin.html');
+  if (!me) return;
+  const d = new Date();
+  document.getElementById('today-line').textContent =
+    `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 · 运营实时概览 · 当前账号 ${me.company || me.phone}`;
+  await loadStats();
+  loadPending();
+  loadTickets();
+  loadAnnouncements();
+  loadLogs();
+})();
+
+async function loadStats() {
+  const j = await api('/api/admin/stats');
+  if (j.code !== 0) return toast(j.msg || '统计加载失败');
+  const s = j.data;
+
+  const cards = [
+    { l: '商家总数', v: num(s.merchants), sub: `已认证 ${s.verified} · 停用 ${s.disabled}`, ic: 'shop', cls: '' },
+    { l: '待审核商家', v: num(s.pending), sub: s.pending ? '需要尽快处理' : '暂无待办', ic: 'dash', cls: 'red', href: '/ht/admin-merchants?status=待审核' },
+    { l: '智能体', v: num(s.agents), sub: `运行中 ${s.agents_running} · 分类 ${s.tags}`, ic: 'agent', cls: 'green' },
+    { l: '点数总量', v: num(s.tokens), sub: '所有商家余额合计', ic: 'coin', cls: 'amber' },
+    { l: '累计发放', v: num(s.recharged), sub: '充值 + 赠送', ic: 'coin', cls: '' },
+    { l: '累计消耗', v: num(s.consumed), sub: '智能体调用消耗', ic: 'coin', cls: '' },
+    { l: '未关闭工单', v: num(s.tickets_open), sub: '待回复的客诉', ic: 'ticket', cls: 'amber', href: '/ht/admin-tickets' },
+    { l: '管理员', v: num(s.admins), sub: `已发布公告 ${s.announcements}`, ic: 'user', cls: '' },
+  ];
+  document.getElementById('kpis').innerHTML = cards.map(c => `
+    <div class="kpi" ${c.href ? `onclick="location.href='${c.href}'" style="cursor:pointer"` : ''}>
+      <div class="k-top"><span class="k-ic ${c.cls}">${AICONS[c.ic]}</span>${c.l}</div>
+      <div class="k-num">${c.v}</div>
+      <div class="k-sub">${c.sub}</div>
+    </div>`).join('');
+
+  // 趋势柱状
+  const t = s.trend || [];
+  const max = Math.max(1, ...t.map(x => x.merchants));
+  document.getElementById('bars').innerHTML = t.map(x => {
+    const h = Math.round((x.merchants / max) * 100);
+    return `<div class="b" title="${x.date} 新增 ${x.merchants} 家·工单 ${x.tickets} 单">
+      <div class="bar ${x.merchants ? 'hot' : ''}" style="height:${Math.max(4, h)}%"><span class="v">${x.merchants}</span></div>
+      <div class="d">${x.date.slice(3)}</div></div>`;
+  }).join('') || '<div class="muted small">暂无数据</div>';
+  document.getElementById('trend-sum').textContent = '近 7 日共 ' + t.reduce((a, b) => a + b.merchants, 0) + ' 家';
+
+  document.getElementById('sum-in').textContent = num(s.recharged);
+  document.getElementById('sum-out').textContent = num(s.consumed);
+  document.getElementById('i-agents').textContent = `${s.agents} 个（运行中 ${s.agents_running}）`;
+  document.getElementById('i-tags').textContent = s.tags + ' 个';
+  document.getElementById('i-ann').textContent = s.announcements + ' 条';
+  document.getElementById('i-admins').textContent = s.admins + ' 人';
+}
+
+async function loadPending() {
+  const j = await api('/api/admin/merchants?status=待审核&pageSize=5');
+  const box = document.getElementById('pending-list');
+  if (j.code !== 0) { box.innerHTML = '<div style="padding:20px;color:var(--muted-2);font-size:13px">加载失败</div>'; return; }
+  const list = j.data.list || [];
+  PENDING = list;
+  if (!list.length) {
+    box.innerHTML = '<div style="padding:26px;text-align:center;color:var(--muted-2);font-size:13px">暂无待审核商家 🎉</div>';
+    return;
+  }
+  box.innerHTML = list.map(m => `
+    <div class="list-row">
+      <div class="grow"><b>${esc(m.company)}</b><span>${esc(m.contact || '—')} · ${esc(maskPhone(m.phone))} · ${fmtTime(m.created_at)}</span></div>
+      <button class="btn btn-sm" onclick="quickReview(${m.id})">审核</button>
+    </div>`).join('');
+}
+
+let PENDING = [];
+async function quickReview(id) {
+  const m = PENDING.find(x => x.id === id);
+  const name = m ? m.company : ('ID ' + id);
+  openModal(`<h3>商家审核</h3>
+    <p class="small muted" style="margin-bottom:16px">${esc(name)}</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="doReview(${id},'已认证')">通过认证</button>
+      <button class="btn btn-danger" style="flex:1" onclick="doReview(${id},'已驳回')">驳回申请</button>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">取消</button></div>`);
+}
+
+async function doReview(id, status) {
+  const j = await api(`/api/admin/merchants/${id}/review`, 'POST', { status });
+  if (j.code === 0) { toast('已' + (status === '已认证' ? '通过' : '驳回')); closeModal(); loadStats(); loadPending(); }
+  else toast(j.msg || '操作失败');
+}
+
+async function loadTickets() {
+  const j = await api('/api/admin/tickets?pageSize=5');
+  const box = document.getElementById('ticket-list');
+  if (j.code !== 0) { box.innerHTML = '<div style="padding:20px;color:var(--muted-2);font-size:13px">加载失败</div>'; return; }
+  const list = (j.data.list || []).filter(t => t.status !== '已关闭');
+  if (!list.length) {
+    box.innerHTML = '<div style="padding:26px;text-align:center;color:var(--muted-2);font-size:13px">暂无待处理工单</div>';
+    return;
+  }
+  box.innerHTML = list.map(t => `
+    <div class="list-row">
+      <div class="grow"><b>${esc(t.title)}</b><span>${esc(t.company || '—')} · ${esc(t.category)} · ${fmtTime(t.created_at)}</span></div>
+      <a class="btn btn-sm" href="/ht/admin-tickets">处理</a>
+    </div>`).join('');
+}
+
+async function loadAnnouncements() {
+  const j = await api('/api/admin/announcements');
+  const box = document.getElementById('ann-list');
+  if (j.code !== 0) { box.innerHTML = ''; return; }
+  const list = (j.data || []).slice(0, 4);
+  box.innerHTML = list.length ? list.map(a => `
+    <div class="list-row">
+      <div class="grow"><b>${esc(a.title)}</b><span>${esc(a.level)} · ${fmtTime(a.published_at || a.created_at)}</span></div>
+      ${statusBadge(a.status)}
+    </div>`).join('') : '<div style="padding:24px;text-align:center;color:var(--muted-2);font-size:13px">暂无公告</div>';
+}
+
+async function loadLogs() {
+  const j = await api('/api/admin/logs?pageSize=5');
+  const box = document.getElementById('log-list');
+  if (j.code !== 0) { box.innerHTML = ''; return; }
+  const list = j.data.list || [];
+  box.innerHTML = list.length ? list.map(l => `
+    <div class="list-row">
+      <div class="grow"><b>${esc(l.action)}${l.target ? ' · ' + esc(l.target) : ''}</b><span>${esc(l.admin_name || '—')} · ${fmtTime(l.created_at)}</span></div>
+      <span class="badge">${esc(l.ip || '-')}</span>
+    </div>`).join('') : '<div style="padding:24px;text-align:center;color:var(--muted-2);font-size:13px">暂无操作记录</div>';
+}
+</script>
+</body>
+</html>
